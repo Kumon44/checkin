@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Employee Time Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1A2E;
+    --panel:#EDEAE3;
+    --panel-2:#FFFDF7;
+    --teal:#3C5B8C;
+    --teal-dark:#2A4266;
+    --in:#2F7D5A;
+    --in-bg:#E4F0E7;
+    --out:#B5502C;
+    --out-bg:#F5E4DA;
+    --line:#D8D3C6;
+    --text:#1C2521;
+    --muted:#6B6255;
+    --gold:#C99A3B;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;padding:0;background:transparent;color:var(--text);font-family:'Inter',sans-serif;scroll-behavior:smooth;}
+  .app{background:var(--ink);min-height:100vh;padding:28px;display:flex;flex-direction:column;gap:20px;}
+  header.top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;color:var(--panel-2);padding:0 4px;}
+  .brand{display:flex;flex-direction:column;gap:2px;}
+  .brand .kicker{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
+  .brand h1{font-family:'Space Grotesk',sans-serif;font-size:28px;margin:2px 0 0 0;font-weight:700;letter-spacing:-.01em;}
+  .back-link{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#CFD6E0;text-decoration:none;border:1px solid rgba(255,255,255,.18);padding:6px 12px;border-radius:20px;}
+  .back-link:hover{background:rgba(255,255,255,.08);}
+  .counts{display:flex;gap:18px;font-family:'IBM Plex Mono',monospace;}
+  .count-item{text-align:right;}
+  .count-item .n{font-size:22px;font-weight:600;display:block;line-height:1;}
+  .count-item .l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9FAEC2;}
+  .count-item.in .n{color:#7FD9AE;}
+  .count-item.out .n{color:#E8A480;}
+
+  .quicknav{position:sticky;top:0;z-index:20;display:flex;gap:8px;flex-wrap:wrap;background:var(--ink);padding:6px 4px 10px 4px;margin:-6px 0 -4px 0;}
+  .quicknav a{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#CFD6E0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);padding:6px 10px;border-radius:20px;text-decoration:none;}
+  .quicknav a:hover{background:rgba(255,255,255,.14);}
+
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;}
+  @media (max-width:760px){.grid{grid-template-columns:1fr;}}
+
+  .card{background:var(--panel);border-radius:14px;padding:18px;border:1px solid var(--line);}
+  .card h2{font-family:'Space Grotesk',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px 0;color:var(--teal-dark);}
+
+  .add-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+  .add-row input{flex:1;min-width:110px;}
+  input[type=text], input[type=password], input[type=date], textarea{
+    font-family:'Inter',sans-serif;border:1px solid var(--line);background:var(--panel-2);
+    border-radius:8px;padding:9px 10px;font-size:14px;color:var(--text);width:100%;
+  }
+  input:focus, textarea:focus{outline:2px solid var(--teal);outline-offset:1px;}
+  button{font-family:'Inter',sans-serif;font-weight:600;border:none;border-radius:8px;padding:9px 13px;cursor:pointer;font-size:13px;}
+  .btn-teal{background:var(--teal);color:white;}
+  .btn-teal:hover{background:var(--teal-dark);}
+  .btn-ghost{background:transparent;color:var(--teal-dark);border:1px solid var(--line);}
+  .btn-ghost:hover{background:var(--panel-2);}
+
+  .search-wrap{margin:14px 0 8px 0;}
+
+  .roster-list{list-style:none;margin:0;padding:0;max-height:480px;overflow:auto;}
+  .roster-list li{display:flex;align-items:center;justify-content:space-between;padding:9px 8px;border-radius:8px;gap:8px;}
+  .roster-list li:hover{background:var(--panel-2);}
+  .roster-list .name{font-size:14px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:20px;font-weight:600;}
+  .badge.in{background:var(--in-bg);color:var(--in);}
+  .badge.out{background:var(--out-bg);color:var(--out);}
+  button.badge{cursor:pointer;border:1px solid transparent;transition:transform .05s ease;}
+  button.badge.in:hover{border-color:var(--in);}
+  button.badge.out:hover{border-color:var(--out);}
+  button.badge:active{transform:scale(.95);}
+  .remove-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;}
+  .remove-x:hover{color:var(--out);}
+  .empty-note{color:var(--muted);font-size:13px;padding:8px 4px;}
+
+  .checked-in-row{display:flex;justify-content:space-between;align-items:center;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px;gap:8px;}
+  .checked-in-row:last-child{border-bottom:none;}
+  .checked-in-row .name{font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .checked-in-row .time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;}
+  .quick-out-btn{
+    background:var(--out-bg);color:var(--out);font-family:'IBM Plex Mono',monospace;
+    font-size:10px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;
+    padding:4px 9px;border-radius:20px;cursor:pointer;border:1px solid transparent;white-space:nowrap;
+  }
+  .quick-out-btn:hover{border-color:var(--out);}
+
+  .stamp{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border:2px solid currentColor;border-radius:5px;transform:rotate(-3deg);display:inline-block;}
+  .stamp.in{color:var(--in);}
+  .stamp.out{color:var(--out);}
+
+  .ledger{max-height:340px;overflow:auto;}
+  .ledger ul{list-style:none;margin:0;padding:0;}
+  .ledger li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line);font-size:13px;}
+  .ledger li:last-child{border-bottom:none;}
+  .ledger .who{font-weight:600;}
+  .ledger .time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;}
+  .log-filter-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  .log-filter-row input[type=text]{flex:1;min-width:140px;}
+  select{font-family:'Inter',sans-serif;border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:9px 10px;font-size:13px;color:var(--text);}
+  .log-count{font-size:12px;color:var(--muted);margin-bottom:6px;}
+
+  .export-row{display:flex;gap:8px;flex-wrap:wrap;align-items:end;}
+  .export-field{display:flex;flex-direction:column;gap:4px;}
+  .export-field label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+  .export-note{font-size:12px;color:var(--muted);margin-top:10px;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(15,15,25,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:var(--panel-2);border-radius:14px;padding:22px;width:100%;max-width:340px;}
+  .modal h3{font-family:'Space Grotesk',sans-serif;margin:0 0 4px 0;font-size:18px;}
+  .modal .sub{font-size:13px;color:var(--muted);margin-bottom:14px;}
+  .modal-error{color:var(--out);font-size:12px;min-height:16px;margin-top:6px;}
+  .modal-actions{display:flex;gap:8px;margin-top:14px;}
+  .modal-actions button{flex:1;}
+
+  footer.bottom{display:flex;justify-content:space-between;align-items:center;color:#8B93A8;font-size:12px;padding:0 6px;flex-wrap:wrap;gap:8px;}
+  footer.bottom button{background:none;border:none;color:#A8B4CC;text-decoration:underline;cursor:pointer;font-size:12px;}
+  .status-msg{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold);min-height:14px;}
+
+  .back-to-top{position:fixed;bottom:22px;right:22px;background:var(--teal);color:white;border:none;border-radius:24px;padding:10px 16px;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none;z-index:30;}
+  .back-to-top:hover{background:var(--teal-dark);}
+  .back-to-top.show{display:block;}
+
+  .ledger-head-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .ledger-head-row h2{margin:0;}
+  .edit-toggle-btn{background:transparent;color:var(--teal-dark);border:1px solid var(--line);font-size:11px;padding:6px 10px;}
+  .edit-toggle-btn.active{background:var(--gold);color:white;border-color:var(--gold);}
+  .ledger li.editable{grid-template-columns:auto 1fr auto auto;}
+  .edit-entry-btn{
+    background:none;border:1px solid var(--line);color:var(--teal-dark);
+    font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .edit-entry-btn:hover{background:var(--panel-2);}
+  .add-manual-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:end;
+    background:var(--panel-2);
+    border:1px dashed var(--line);
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:12px;
+  }
+  .add-manual-row .field{display:flex;flex-direction:column;gap:4px;}
+  .add-manual-row label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+  .add-manual-row select{padding:9px 10px;}
+
+  .subhead{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.07em;
+    color:var(--teal-dark);
+    margin:22px 0 10px 0;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+  }
+  .subhead:first-of-type{margin-top:14px;padding-top:0;border-top:none;}
+  .issue-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:20px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .issue-tag.missing-checkout, .issue-tag.missing-checkin{background:var(--out-bg);color:var(--out);}
+  .issue-tag.long-shift, .issue-tag.still-in{background:#F5EAD0;color:#93701E;}
+  .ledger li.issue-row{grid-template-columns:auto 1fr auto;}
+  .ledger li.issue-row .who{display:block;}
+  .ledger li.issue-row .issue-msg{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span class="kicker" id="today"></span>
+      <h1>Employee Time Clock</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="counts">
+        <div class="count-item in"><span class="n" id="countIn">0</span><span class="l">Clocked In</span></div>
+        <div class="count-item out"><span class="n" id="countOut">0</span><span class="l">Clocked Out</span></div>
+        <div class="count-item"><span class="n" id="countTotal">0</span><span class="l">Staff</span></div>
+      </div>
+      <a class="back-link" href="index.html">&larr; Student Sign-In</a>
+    </div>
+  </header>
+
+  <div class="quicknav">
+    <a href="#rosterCard">Staff</a>
+    <a href="#checkedInCard">Clocked In</a>
+    <a href="#protectedCard">Protected Records</a>
+  </div>
+
+  <div class="grid">
+    <div class="card" id="rosterCard">
+      <h2>Staff</h2>
+      <div class="add-row">
+        <input type="text" id="newName" placeholder="Employee name">
+        <input type="password" id="newPassword" placeholder="Set a password">
+        <button class="btn-teal" id="addBtn">Add</button>
+      </div>
+      <div class="search-wrap">
+        <input type="text" id="search" placeholder="Search staff...">
+      </div>
+      <ul class="roster-list" id="rosterList"></ul>
+      <div class="empty-note" id="rosterEmpty" style="display:none;">No staff yet — add someone above.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="card" id="checkedInCard">
+        <h2>Currently Clocked In</h2>
+        <div class="ledger" id="checkedInList"></div>
+      </div>
+
+      <div class="card" id="protectedCard">
+        <div class="ledger-head-row">
+          <h2>Protected Records</h2>
+          <button class="edit-toggle-btn" id="editToggleBtn">Unlock</button>
+        </div>
+
+        <div id="lockedNotice">
+          <p class="empty-note" style="padding:4px 0 0 0;">The activity log, data integrity checks, and payroll export are hidden until you enter the admin password.</p>
+        </div>
+
+        <div id="protectedContent" style="display:none;">
+
+          <h3 class="subhead">Activity Log</h3>
+          <div class="add-manual-row" id="addManualRow">
+            <div class="field">
+              <label>Employee</label>
+              <select id="manualEmployee"></select>
+            </div>
+            <div class="field">
+              <label>Type</label>
+              <select id="manualType">
+                <option value="in">In</option>
+                <option value="out">Out</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Date &amp; time</label>
+              <input type="datetime-local" id="manualDatetime">
+            </div>
+            <button class="btn-teal" id="manualAddBtn">Add Entry</button>
+          </div>
+          <div class="log-filter-row">
+            <input type="text" id="logSearch" placeholder="Search by name...">
+            <select id="logDate"><option value="">All dates</option></select>
+          </div>
+          <div class="log-count" id="logCount"></div>
+          <div class="ledger" id="ledger"></div>
+
+          <h3 class="subhead">Data Integrity Checks</h3>
+          <div class="export-note" style="margin-top:-4px;">Flags any clock-in without a matching clock-out, any clock-out without a matching clock-in, and any completed shift longer than 12 hours.</div>
+          <div class="log-count" id="issuesCount"></div>
+          <div class="ledger" id="issuesList"></div>
+
+          <h3 class="subhead">Export Payroll Hours</h3>
+          <div class="export-row">
+            <div class="export-field">
+              <label for="exportStart">From</label>
+              <input type="date" id="exportStart">
+            </div>
+            <div class="export-field">
+              <label for="exportEnd">To</label>
+              <input type="date" id="exportEnd">
+            </div>
+            <button class="btn-teal" id="exportBtn">Export CSV</button>
+          </div>
+          <div class="export-note">Calculates total hours worked per employee between the selected dates (inclusive), by pairing each clock-in with the next clock-out. Sessions that don't have a matching pair are flagged in the export for manual review.</div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bottom">
+    <span class="status-msg" id="statusMsg"></span>
+    <span>
+      <button id="refreshBtn">Refresh</button>
+      <button id="resetAll">Clear all data</button>
+    </span>
+  </footer>
+</div>
+<button class="back-to-top" id="backToTop">&uarr; Top</button>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalName"></h3>
+    <div class="sub" id="modalAction"></div>
+    <input type="password" id="modalPassword" placeholder="Password">
+    <div class="modal-error" id="modalError"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="modalCancel">Cancel</button>
+      <button class="btn-teal" id="modalSubmit">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="adminModalOverlay">
+  <div class="modal">
+    <h3>Admin Access</h3>
+    <div class="sub">Enter the admin password to edit or add time entries.</div>
+    <input type="password" id="adminModalPassword" placeholder="Admin password">
+    <div class="modal-error" id="adminModalError"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="adminModalCancel">Cancel</button>
+      <button class="btn-teal" id="adminModalSubmit">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editEntryOverlay">
+  <div class="modal">
+    <h3 id="editEntryName"></h3>
+    <div class="sub" id="editEntryType"></div>
+    <input type="datetime-local" id="editEntryDatetime">
+    <div class="modal-error" id="editEntryError"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="editEntryCancel">Cancel</button>
+      <button class="btn-teal" id="editEntrySave">Save</button>
+    </div>
+    <button class="btn-ghost" id="editEntryDelete" style="width:100%;margin-top:8px;color:var(--out);">Delete this entry</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ====================================================================
+  // Paste the Web App URL from your EmployeeCode.gs deployment below
+  // ====================================================================
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw24Q10V5U3hbi2dmMiYmJT7uNh2HCPNRl28Y9RXciRjCF0iY9Z640s5qDpRn8RtQPLqQ/exec';
+
+  let data = { employees: [], events: [] };
+  let pendingClock = null; // { employeeId, name, nextType }
+  let editMode = false;
+  let adminPassword = null;
+  let editingEventId = null;
+
+  const rosterList = document.getElementById('rosterList');
+  const rosterEmpty = document.getElementById('rosterEmpty');
+  const ledgerEl = document.getElementById('ledger');
+  const searchInput = document.getElementById('search');
+  const statusMsg = document.getElementById('statusMsg');
+
+  document.getElementById('today').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+
+  function fmtTime(ts){ return new Date(ts).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
+  function dateKey(ts){ return new Date(ts).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'}); }
+
+  function statusOf(employeeId){
+    const evs = data.events.filter(e=>e.employeeId===employeeId);
+    if(evs.length===0) return 'out';
+    return evs[evs.length-1].type;
+  }
+
+  let flashTimer;
+  function flash(msg, persist){
+    statusMsg.textContent = msg;
+    clearTimeout(flashTimer);
+    if(!persist){ flashTimer = setTimeout(()=>{ statusMsg.textContent=''; }, 3500); }
+  }
+
+  async function apiGet(){
+    const res = await fetch(API_URL);
+    if(!res.ok) throw new Error('Request failed');
+    return res.json();
+  }
+  async function apiPost(payload){
+    const res = await fetch(API_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error('Request failed');
+    return res.json();
+  }
+
+  async function load(quiet){
+    if(API_URL.includes('PASTE_YOUR')){
+      flash('Not connected yet — set API_URL at the top of the script.', true);
+      render();
+      return;
+    }
+    if(!quiet) flash('Syncing…', true);
+    try{
+      const fresh = await apiGet();
+      if(fresh && Array.isArray(fresh.employees) && Array.isArray(fresh.events)){
+        data = fresh;
+      }
+      if(!quiet) flash('');
+    }catch(e){
+      flash('Could not reach the server — check your connection.');
+    }
+    render();
+  }
+
+  setInterval(()=>load(true), 15000);
+
+  // ---- add employee ----
+  document.getElementById('addBtn').addEventListener('click', async ()=>{
+    const nameInput = document.getElementById('newName');
+    const pwInput = document.getElementById('newPassword');
+    const name = nameInput.value.trim();
+    const password = pwInput.value;
+    if(!name || !password){ flash('Name and password are both required.'); return; }
+    flash('Adding…', true);
+    try{
+      await apiPost({ action:'addEmployee', name, password });
+      nameInput.value=''; pwInput.value='';
+      await load(true);
+      flash('');
+    }catch(e){ flash('Could not save — try again.'); }
+  });
+
+  searchInput.addEventListener('input', render);
+
+  // ---- password modal ----
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalName = document.getElementById('modalName');
+  const modalAction = document.getElementById('modalAction');
+  const modalPassword = document.getElementById('modalPassword');
+  const modalError = document.getElementById('modalError');
+
+  function openClockModal(employeeId, name){
+    const current = statusOf(employeeId);
+    const nextType = current==='in' ? 'out' : 'in';
+    pendingClock = { employeeId, name, nextType };
+    modalName.textContent = name;
+    modalAction.textContent = nextType==='in' ? 'Enter password to clock in' : 'Enter password to clock out';
+    modalPassword.value = '';
+    modalError.textContent = '';
+    modalOverlay.classList.add('show');
+    setTimeout(()=>modalPassword.focus(), 50);
+  }
+  function closeModal(){
+    modalOverlay.classList.remove('show');
+    pendingClock = null;
+  }
+  document.getElementById('modalCancel').addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e)=>{ if(e.target===modalOverlay) closeModal(); });
+  modalPassword.addEventListener('keydown', (e)=>{ if(e.key==='Enter') document.getElementById('modalSubmit').click(); });
+
+  document.getElementById('modalSubmit').addEventListener('click', async ()=>{
+    if(!pendingClock) return;
+    const password = modalPassword.value;
+    if(!password){ modalError.textContent = 'Password required.'; return; }
+    modalError.textContent = '';
+    flash('Checking…', true);
+    try{
+      const res = await apiPost({ action:'clockAction', employeeId: pendingClock.employeeId, type: pendingClock.nextType, password });
+      if(res && res.error){
+        modalError.textContent = res.error;
+        flash('');
+        return;
+      }
+      closeModal();
+      await load(true);
+      flash('');
+    }catch(e){
+      modalError.textContent = 'Network error — try again.';
+      flash('');
+    }
+  });
+
+  // ---- datetime helpers ----
+  function tsToLocalInput(ts){
+    const d = new Date(ts);
+    const pad = n=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function localInputToTs(val){
+    return new Date(val).getTime();
+  }
+
+  // ---- admin edit mode ----
+  const adminModalOverlay = document.getElementById('adminModalOverlay');
+  const adminModalPassword = document.getElementById('adminModalPassword');
+  const adminModalError = document.getElementById('adminModalError');
+  const editToggleBtn = document.getElementById('editToggleBtn');
+  const lockedNotice = document.getElementById('lockedNotice');
+  const protectedContent = document.getElementById('protectedContent');
+
+  function populateManualEmployeeSelect(){
+    const sel = document.getElementById('manualEmployee');
+    const prev = sel.value;
+    sel.innerHTML = '';
+    data.employees.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(emp=>{
+      const opt = document.createElement('option');
+      opt.value = emp.id;
+      opt.textContent = emp.name;
+      sel.appendChild(opt);
+    });
+    if(Array.from(sel.options).some(o=>o.value===prev)) sel.value = prev;
+  }
+
+  editToggleBtn.addEventListener('click', ()=>{
+    if(editMode){
+      editMode = false;
+      adminPassword = null;
+      editToggleBtn.textContent = 'Unlock';
+      editToggleBtn.classList.remove('active');
+      lockedNotice.style.display = 'block';
+      protectedContent.style.display = 'none';
+    }else{
+      adminModalPassword.value = '';
+      adminModalError.textContent = '';
+      adminModalOverlay.classList.add('show');
+      setTimeout(()=>adminModalPassword.focus(), 50);
+    }
+  });
+
+  document.getElementById('adminModalCancel').addEventListener('click', ()=>{
+    adminModalOverlay.classList.remove('show');
+  });
+  adminModalOverlay.addEventListener('click', (e)=>{ if(e.target===adminModalOverlay) adminModalOverlay.classList.remove('show'); });
+  adminModalPassword.addEventListener('keydown', (e)=>{ if(e.key==='Enter') document.getElementById('adminModalSubmit').click(); });
+
+  document.getElementById('adminModalSubmit').addEventListener('click', async ()=>{
+    const val = adminModalPassword.value;
+    if(!val){ adminModalError.textContent = 'Password required.'; return; }
+    flash('Checking…', true);
+    try{
+      const res = await apiPost({ action:'verifyAdmin', password: val });
+      if(res && res.error){
+        adminModalError.textContent = res.error;
+        flash('');
+        return;
+      }
+      adminPassword = val;
+      editMode = true;
+      adminModalOverlay.classList.remove('show');
+      editToggleBtn.textContent = 'Exit Edit Mode';
+      editToggleBtn.classList.add('active');
+      lockedNotice.style.display = 'none';
+      protectedContent.style.display = 'block';
+      populateManualEmployeeSelect();
+      flash('');
+      render();
+    }catch(e){
+      adminModalError.textContent = 'Network error — try again.';
+      flash('');
+    }
+  });
+
+  // ---- edit / delete a single entry ----
+  const editEntryOverlay = document.getElementById('editEntryOverlay');
+  const editEntryDatetime = document.getElementById('editEntryDatetime');
+  const editEntryError = document.getElementById('editEntryError');
+
+  function openEditEntry(ev){
+    editingEventId = ev.id;
+    const emp = data.employees.find(x=>x.id===ev.employeeId);
+    document.getElementById('editEntryName').textContent = emp ? emp.name : '(removed employee)';
+    document.getElementById('editEntryType').textContent = (ev.type==='in' ? 'Clock In' : 'Clock Out') + ' entry';
+    editEntryDatetime.value = tsToLocalInput(ev.timestamp);
+    editEntryError.textContent = '';
+    editEntryOverlay.classList.add('show');
+  }
+  document.getElementById('editEntryCancel').addEventListener('click', ()=>{
+    editEntryOverlay.classList.remove('show');
+    editingEventId = null;
+  });
+  editEntryOverlay.addEventListener('click', (e)=>{ if(e.target===editEntryOverlay){ editEntryOverlay.classList.remove('show'); editingEventId=null; } });
+
+  document.getElementById('editEntrySave').addEventListener('click', async ()=>{
+    if(!editingEventId) return;
+    const val = editEntryDatetime.value;
+    if(!val){ editEntryError.textContent = 'Pick a date and time.'; return; }
+    flash('Saving…', true);
+    try{
+      const res = await apiPost({ action:'editEvent', id: editingEventId, timestamp: localInputToTs(val), password: adminPassword });
+      if(res && res.error){ editEntryError.textContent = res.error; flash(''); return; }
+      editEntryOverlay.classList.remove('show');
+      editingEventId = null;
+      await load(true);
+      flash('');
+    }catch(e){
+      editEntryError.textContent = 'Network error — try again.';
+      flash('');
+    }
+  });
+
+  document.getElementById('editEntryDelete').addEventListener('click', async ()=>{
+    if(!editingEventId) return;
+    if(!confirm('Delete this entry? This cannot be undone.')) return;
+    flash('Deleting…', true);
+    try{
+      const res = await apiPost({ action:'deleteEvent', id: editingEventId, password: adminPassword });
+      if(res && res.error){ editEntryError.textContent = res.error; flash(''); return; }
+      editEntryOverlay.classList.remove('show');
+      editingEventId = null;
+      await load(true);
+      flash('');
+    }catch(e){
+      editEntryError.textContent = 'Network error — try again.';
+      flash('');
+    }
+  });
+
+  // ---- manually add an entry ----
+  document.getElementById('manualAddBtn').addEventListener('click', async ()=>{
+    const employeeId = document.getElementById('manualEmployee').value;
+    const type = document.getElementById('manualType').value;
+    const val = document.getElementById('manualDatetime').value;
+    if(!employeeId){ flash('Add an employee first.'); return; }
+    if(!val){ flash('Pick a date and time.'); return; }
+    flash('Adding…', true);
+    try{
+      const res = await apiPost({ action:'addManualEvent', employeeId, type, timestamp: localInputToTs(val), password: adminPassword });
+      if(res && res.error){ flash(res.error); return; }
+      document.getElementById('manualDatetime').value = '';
+      await load(true);
+      flash('Entry added.');
+    }catch(e){ flash('Could not save — try again.'); }
+  });
+  async function removeEmployee(id){
+    if(!confirm('Remove this employee? Their time log will be kept.')) return;
+    flash('Removing…', true);
+    try{
+      const res = await apiPost({ action:'removeEmployee', id, password: adminPassword });
+      if(res && res.error){ flash(res.error); return; }
+      await load(true);
+      flash('');
+    }catch(e){ flash('Could not remove — try again.'); }
+  }
+
+  // ---- refresh / reset ----
+  document.getElementById('refreshBtn').addEventListener('click', ()=>load(false));
+  document.getElementById('resetAll').addEventListener('click', async ()=>{
+    if(!confirm('Clear ALL staff and time log entries? This cannot be undone.')) return;
+    if(!confirm('Are you absolutely sure? This will permanently delete payroll history.')) return;
+    flash('Clearing…', true);
+    try{
+      await apiPost({ action:'reset' });
+      await load(true);
+      flash('');
+    }catch(e){ flash('Could not clear — try again.'); }
+  });
+
+  // ---- back to top ----
+  const backToTop = document.getElementById('backToTop');
+  window.addEventListener('scroll', ()=>{ backToTop.classList.toggle('show', window.scrollY > 300); });
+  backToTop.addEventListener('click', ()=>{ window.scrollTo({ top:0, behavior:'smooth' }); });
+
+  // ---- rendering ----
+  function renderRoster(){
+    const q = searchInput.value.trim().toLowerCase();
+    const employees = data.employees.filter(e=>e.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
+    rosterList.innerHTML = '';
+    rosterEmpty.style.display = data.employees.length===0 ? 'block' : 'none';
+    employees.forEach(emp=>{
+      const st = statusOf(emp.id);
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="name"></span>
+        <button class="badge ${st}" title="Click to ${st==='in'?'clock out':'clock in'}">${st==='in'?'In':'Out'}</button>
+        ${editMode ? `<button class="remove-x" title="Remove employee">&times;</button>` : ''}
+      `;
+      li.querySelector('.name').textContent = emp.name;
+      li.querySelector('.badge').addEventListener('click', ()=>openClockModal(emp.id, emp.name));
+      if(editMode){
+        li.querySelector('.remove-x').addEventListener('click', ()=>removeEmployee(emp.id));
+      }
+      rosterList.appendChild(li);
+    });
+  }
+
+  function renderCheckedIn(){
+    const el = document.getElementById('checkedInList');
+    const inList = data.employees
+      .filter(e=>statusOf(e.id)==='in')
+      .map(e=>{
+        const evs = data.events.filter(ev=>ev.employeeId===e.id);
+        const lastIn = evs.length ? evs[evs.length-1] : null;
+        return { emp:e, since: lastIn ? lastIn.timestamp : null };
+      })
+      .sort((a,b)=>a.emp.name.localeCompare(b.emp.name));
+    if(inList.length===0){ el.innerHTML = '<div class="empty-note">No one is currently clocked in.</div>'; return; }
+    el.innerHTML = inList.map(x=>`
+      <div class="checked-in-row">
+        <span class="name"></span>
+        <span class="time">${x.since ? 'since '+fmtTime(x.since) : ''}</span>
+        <button class="quick-out-btn" data-id="${x.emp.id}">Clock Out</button>
+      </div>
+    `).join('');
+    const rows = el.querySelectorAll('.checked-in-row .name');
+    inList.forEach((x,i)=>{ rows[i].textContent = x.emp.name; });
+    el.querySelectorAll('.quick-out-btn').forEach(btn=>{
+      const match = inList.find(x=>x.emp.id===btn.dataset.id);
+      btn.addEventListener('click', ()=>openClockModal(match.emp.id, match.emp.name));
+    });
+  }
+
+  function populateDateFilter(){
+    const sel = document.getElementById('logDate');
+    const prev = sel.value;
+    const dates = Array.from(new Set(data.events.map(e=>dateKey(e.timestamp))));
+    const dateToTs = {};
+    data.events.forEach(e=>{ const k=dateKey(e.timestamp); if(!dateToTs[k] || e.timestamp>dateToTs[k]) dateToTs[k]=e.timestamp; });
+    dates.sort((a,b)=>dateToTs[b]-dateToTs[a]);
+    sel.innerHTML = '<option value="">All dates</option>' + dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+    if(dates.includes(prev)) sel.value = prev;
+  }
+
+  function renderLedger(){
+    populateDateFilter();
+    const q = document.getElementById('logSearch').value.trim().toLowerCase();
+    const dateFilter = document.getElementById('logDate').value;
+    let events = data.events.slice().sort((a,b)=>b.timestamp-a.timestamp);
+    if(dateFilter) events = events.filter(e=>dateKey(e.timestamp)===dateFilter);
+    if(q){
+      events = events.filter(e=>{
+        const emp = data.employees.find(x=>x.id===e.employeeId);
+        const name = emp ? emp.name.toLowerCase() : '';
+        return name.includes(q);
+      });
+    }
+    const total = events.length;
+    const shown = events.slice(0,150);
+    document.getElementById('logCount').textContent = total===0 ? '' : `${total} entr${total===1?'y':'ies'}${total>150?' (showing most recent 150)':''}`;
+    if(shown.length===0){
+      ledgerEl.innerHTML = `<div class="empty-note">${data.events.length===0 ? 'No clock-ins or clock-outs recorded yet.' : 'No matching entries.'}</div>`;
+      return;
+    }
+    ledgerEl.innerHTML = `<ul>${shown.map(e=>`
+      <li class="${editMode ? 'editable' : ''}">
+        <span class="stamp ${e.type}">${e.type==='in'?'IN':'OUT'}</span>
+        <span class="who"></span>
+        <span class="time">${fmtTime(e.timestamp)} &middot; ${dateKey(e.timestamp)}</span>
+        ${editMode ? `<button class="edit-entry-btn" data-id="${e.id}">Edit</button>` : ''}
+      </li>
+    `).join('')}</ul>`;
+    const lis = ledgerEl.querySelectorAll('.who');
+    shown.forEach((e,i)=>{
+      const emp = data.employees.find(x=>x.id===e.employeeId);
+      lis[i].textContent = emp ? emp.name : '(removed employee)';
+    });
+    if(editMode){
+      ledgerEl.querySelectorAll('.edit-entry-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const ev = shown.find(x=>x.id===btn.dataset.id);
+          if(ev) openEditEntry(ev);
+        });
+      });
+    }
+  }
+
+  function fmtFull(ts){
+    return dateKey(ts) + ' ' + fmtTime(ts);
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function computeIssues(){
+    const issues = [];
+    const now = Date.now();
+    const TWELVE_HOURS = 12 * 3600 * 1000;
+
+    data.employees.forEach(emp=>{
+      const evs = data.events.filter(e=>e.employeeId===emp.id).sort((a,b)=>a.timestamp-b.timestamp);
+      let pendingIn = null;
+
+      evs.forEach(e=>{
+        if(e.type==='in'){
+          if(pendingIn){
+            issues.push({
+              employee: emp.name, type:'missing-checkout',
+              message: `Clocked in at ${fmtFull(pendingIn.timestamp)} with no clock-out before the next clock-in`,
+              timestamp: pendingIn.timestamp, eventId: pendingIn.id
+            });
+          }
+          pendingIn = e;
+        } else if(e.type==='out'){
+          if(!pendingIn){
+            issues.push({
+              employee: emp.name, type:'missing-checkin',
+              message: `Clock-out at ${fmtFull(e.timestamp)} with no matching clock-in`,
+              timestamp: e.timestamp, eventId: e.id
+            });
+          }else{
+            const durationMs = e.timestamp - pendingIn.timestamp;
+            if(durationMs > TWELVE_HOURS){
+              issues.push({
+                employee: emp.name, type:'long-shift',
+                message: `Shift lasted ${(durationMs/3600000).toFixed(1)} hours (${fmtFull(pendingIn.timestamp)} to ${fmtFull(e.timestamp)})`,
+                timestamp: pendingIn.timestamp, eventId: e.id
+              });
+            }
+            pendingIn = null;
+          }
+        }
+      });
+
+      if(pendingIn){
+        const hoursSince = (now - pendingIn.timestamp) / 3600000;
+        if(hoursSince > 12){
+          issues.push({
+            employee: emp.name, type:'still-in',
+            message: `Still clocked in since ${fmtFull(pendingIn.timestamp)} (${hoursSince.toFixed(1)} hrs ago) — may have forgotten to clock out`,
+            timestamp: pendingIn.timestamp, eventId: pendingIn.id
+          });
+        }
+      }
+    });
+
+    return issues.sort((a,b)=>b.timestamp-a.timestamp);
+  }
+
+  const issuesLabels = {
+    'missing-checkout':'Missing Out', 'missing-checkin':'Missing In',
+    'long-shift':'Long Shift', 'still-in':'Still In'
+  };
+
+  function renderIssues(){
+    const issuesList = document.getElementById('issuesList');
+    const issuesCount = document.getElementById('issuesCount');
+    const issues = computeIssues();
+
+    if(issues.length===0){
+      issuesCount.textContent = '';
+      issuesList.innerHTML = '<div class="empty-note">No issues found — every clock-in has a matching clock-out, and no shift exceeds 12 hours.</div>';
+      return;
+    }
+    issuesCount.textContent = `${issues.length} issue${issues.length===1?'':'s'} found`;
+    issuesList.innerHTML = `<ul>${issues.map(iss=>`
+      <li class="issue-row">
+        <span class="issue-tag ${iss.type}">${issuesLabels[iss.type]}</span>
+        <span>
+          <span class="who">${escapeHtml(iss.employee)}</span>
+          <span class="issue-msg">${iss.message}</span>
+        </span>
+        <button class="edit-entry-btn" data-id="${iss.eventId}">Edit</button>
+      </li>
+    `).join('')}</ul>`;
+    issuesList.querySelectorAll('.edit-entry-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const ev = data.events.find(x=>x.id===btn.dataset.id);
+        if(ev) openEditEntry(ev);
+      });
+    });
+  }
+
+  function renderCounts(){
+    const inCount = data.employees.filter(e=>statusOf(e.id)==='in').length;
+    document.getElementById('countIn').textContent = inCount;
+    document.getElementById('countOut').textContent = data.employees.length - inCount;
+    document.getElementById('countTotal').textContent = data.employees.length;
+  }
+
+  function render(){
+    renderRoster();
+    renderCheckedIn();
+    renderCounts();
+    if(editMode){
+      renderLedger();
+      renderIssues();
+      populateManualEmployeeSelect();
+    }
+  }
+
+  // ---- payroll export ----
+  function csvField(v){
+    v = String(v);
+    if(v.includes(',') || v.includes('"') || v.includes('\n')){
+      v = '"' + v.replace(/"/g,'""') + '"';
+    }
+    return v;
+  }
+
+  function computeHours(startDate, endDate){
+    const startTs = new Date(startDate + 'T00:00:00').getTime();
+    const endTs = new Date(endDate + 'T23:59:59').getTime();
+    return data.employees.map(emp=>{
+      const evs = data.events
+        .filter(e=>e.employeeId===emp.id && e.timestamp>=startTs && e.timestamp<=endTs)
+        .sort((a,b)=>a.timestamp-b.timestamp);
+      let totalMs = 0, sessions = 0, incomplete = false, pendingIn = null;
+      evs.forEach(e=>{
+        if(e.type==='in'){
+          if(pendingIn!==null) incomplete = true;
+          pendingIn = e.timestamp;
+        } else if(e.type==='out'){
+          if(pendingIn!==null){ totalMs += e.timestamp - pendingIn; sessions++; pendingIn = null; }
+          else { incomplete = true; }
+        }
+      });
+      if(pendingIn!==null) incomplete = true;
+      return { name: emp.name, totalHours: totalMs/3600000, sessions, incomplete };
+    });
+  }
+
+  function downloadCSV(filename, content){
+    const blob = new Blob([content], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', ()=>{
+    const start = document.getElementById('exportStart').value;
+    const end = document.getElementById('exportEnd').value;
+    if(!start || !end){ flash('Pick a start and end date first.'); return; }
+    if(start > end){ flash('Start date must be before end date.'); return; }
+    const rows = computeHours(start, end);
+    const header = ['Employee','Total Hours','Sessions','Notes'];
+    const lines = [header.join(',')];
+    rows.forEach(r=>{
+      const notes = r.incomplete ? 'Incomplete clock in/out — review manually' : '';
+      lines.push([csvField(r.name), r.totalHours.toFixed(2), r.sessions, csvField(notes)].join(','));
+    });
+    downloadCSV(`payroll-hours_${start}_to_${end}.csv`, lines.join('\n'));
+    flash('Export downloaded.');
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

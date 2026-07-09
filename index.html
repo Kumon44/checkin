@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sign-In Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#152420;
+    --panel:#F4EFE3;
+    --panel-2:#FFFDF7;
+    --teal:#1F6F63;
+    --teal-dark:#154F46;
+    --in:#2F7D5A;
+    --in-bg:#E4F0E7;
+    --out:#B5502C;
+    --out-bg:#F5E4DA;
+    --line:#DAD2BC;
+    --text:#1C2521;
+    --muted:#6B6255;
+    --gold:#C99A3B;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;padding:0;background:transparent;color:var(--text);font-family:'Inter',sans-serif;scroll-behavior:smooth;}
+  .app{
+    background:var(--ink);
+    min-height:100vh;
+    padding:28px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+  }
+  header.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:12px;
+    color:var(--panel-2);
+    padding:0 4px;
+  }
+  .brand{display:flex;flex-direction:column;gap:2px;}
+  .brand .kicker{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+  }
+  .brand h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:28px;
+    margin:2px 0 0 0;
+    font-weight:700;
+    letter-spacing:-.01em;
+  }
+  .counts{
+    display:flex;
+    gap:18px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .count-item{
+    text-align:right;
+  }
+  .count-item .n{font-size:22px;font-weight:600;display:block;line-height:1;}
+  .count-item .l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9FB0AA;}
+  .count-item.in .n{color:#7FD9AE;}
+  .count-item.out .n{color:#E8A480;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr;}
+  }
+
+  .card{
+    background:var(--panel);
+    border-radius:14px;
+    padding:18px;
+    border:1px solid var(--line);
+  }
+  .card h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    margin:0 0 12px 0;
+    color:var(--teal-dark);
+  }
+
+  /* roster */
+  .add-row{display:flex;gap:6px;margin-bottom:10px;}
+  input[type=text], input[type=password], input[type=number], textarea{
+    font-family:'Inter',sans-serif;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    border-radius:8px;
+    padding:9px 10px;
+    font-size:14px;
+    color:var(--text);
+    width:100%;
+  }
+  input[type=text]:focus, input[type=password]:focus, input[type=number]:focus, textarea:focus{outline:2px solid var(--teal);outline-offset:1px;}
+  button{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    border:none;
+    border-radius:8px;
+    padding:9px 13px;
+    cursor:pointer;
+    font-size:13px;
+  }
+  .btn-teal{background:var(--teal);color:white;}
+  .btn-teal:hover{background:var(--teal-dark);}
+  .btn-ghost{background:transparent;color:var(--teal-dark);border:1px solid var(--line);}
+  .btn-ghost.danger-btn{color:var(--out);border-color:var(--out-bg);}
+  .btn-ghost.danger-btn:hover{background:var(--out-bg);}
+  .btn-ghost:hover{background:var(--panel-2);}
+  .link-btn{
+    background:none;border:none;color:var(--teal-dark);
+    font-size:12px;text-decoration:underline;cursor:pointer;padding:2px 0;
+  }
+  .bulk-area{margin-top:8px;display:none;flex-direction:column;gap:6px;}
+  .manage-area{display:none;flex-direction:column;gap:8px;margin-top:10px;padding-top:12px;border-top:1px solid var(--line);}
+  .manage-area.open{display:flex;}
+  .bulk-area.open{display:flex;}
+  .bulk-area textarea{min-height:70px;resize:vertical;}
+
+  .search-wrap{margin:14px 0 8px 0;}
+  .class-filter-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  .class-filter-row select{flex:1;min-width:120px;}
+  .class-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--teal-dark);
+    background:rgba(31,111,99,.1);
+    padding:2px 7px;
+    border-radius:10px;
+    white-space:nowrap;
+  }
+  .alert-min-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:#93701E;
+    background:rgba(201,154,59,.15);
+    padding:2px 7px;
+    border-radius:10px;
+    white-space:nowrap;
+  }
+  .ledger-head-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .ledger-head-row h2{margin:0;}
+  .alert-setting-row{display:flex;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .alert-setting-row label{font-size:12px;color:var(--muted);}
+  .alert-setting-row input[type=number]{padding:6px 8px;}
+  .flag-icon{color:var(--out);font-size:13px;}
+  .overdue-row{background:var(--out-bg);border-radius:8px;}
+  .overdue-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:white;
+    background:var(--out);
+    padding:2px 7px;
+    border-radius:10px;
+    white-space:nowrap;
+    font-weight:600;
+  }
+
+  .roster-list{list-style:none;margin:0;padding:0;max-height:520px;overflow:auto;}
+  .roster-list li{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:9px 8px;
+    border-radius:8px;
+    cursor:pointer;
+    gap:8px;
+  }
+  .roster-list li:hover{background:var(--panel-2);}
+  .roster-list li.selected{background:var(--panel-2);box-shadow:inset 3px 0 0 var(--teal);}
+  .roster-list .name{font-size:14px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .badge{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:20px;
+    font-weight:600;
+  }
+  .badge.in{background:var(--in-bg);color:var(--in);}
+  .badge.out{background:var(--out-bg);color:var(--out);}
+  button.badge{
+    cursor:pointer;
+    border:1px solid transparent;
+    transition:transform .05s ease;
+  }
+  button.badge.in:hover{border-color:var(--in);}
+  button.badge.out:hover{border-color:var(--out);}
+  button.badge:active{transform:scale(.95);}
+  .checked-in-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:7px 4px;
+    border-bottom:1px solid var(--line);
+    font-size:13px;
+    gap:8px;
+  }
+  .checked-in-row:last-child{border-bottom:none;}
+  .checked-in-row .name{font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .checked-in-row .time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;}
+  .quick-out-btn{
+    background:var(--out-bg);
+    color:var(--out);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    font-weight:600;
+    padding:4px 9px;
+    border-radius:20px;
+    cursor:pointer;
+    border:1px solid transparent;
+    white-space:nowrap;
+  }
+  .quick-out-btn:hover{border-color:var(--out);}
+  .remove-x{
+    background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;
+  }
+  .remove-x:hover{color:var(--out);}
+  .empty-note{color:var(--muted);font-size:13px;padding:8px 4px;}
+
+  /* detail panel */
+  .detail-empty{
+    color:var(--muted);
+    font-size:14px;
+    padding:30px 10px;
+    text-align:center;
+  }
+  .detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .detail-head h3{font-family:'Space Grotesk',sans-serif;font-size:22px;margin:0;}
+  .close-detail-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-size:18px;
+    line-height:1;
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    cursor:pointer;
+    padding:0;
+  }
+  .close-detail-btn:hover{background:var(--panel-2);color:var(--text);}
+  .toggle-btn{
+    width:100%;
+    padding:16px;
+    border-radius:10px;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:17px;
+    font-weight:700;
+    color:white;
+    margin-bottom:10px;
+    letter-spacing:.01em;
+  }
+  .toggle-btn.to-in{background:var(--in);}
+  .toggle-btn.to-in:hover{background:#256B4B;}
+  .toggle-btn.to-out{background:var(--out);}
+  .toggle-btn.to-out:hover{background:#9A4223;}
+  .note-row{display:flex;gap:6px;margin-bottom:16px;}
+  .settings-field{margin-bottom:10px;}
+  .settings-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .settings-current-value{font-size:11px;color:var(--teal-dark);margin-top:4px;font-family:'IBM Plex Mono',monospace;}
+  .settings-checkbox-row label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;}
+  .settings-checkbox-row input[type=checkbox]{width:16px;height:16px;}
+
+  .mini-log{list-style:none;margin:0;padding:0;}
+  .mini-log li{
+    display:flex;
+    gap:10px;
+    align-items:baseline;
+    padding:6px 0;
+    border-bottom:1px dashed var(--line);
+    font-size:13px;
+  }
+  .mini-log li:last-child{border-bottom:none;}
+
+  /* stamp */
+  .stamp{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:.05em;
+    padding:2px 7px;
+    border:2px solid currentColor;
+    border-radius:5px;
+    transform:rotate(-3deg);
+    display:inline-block;
+  }
+  .stamp.in{color:var(--in);}
+  .stamp.out{color:var(--out);}
+
+  /* ledger */
+  .ledger{max-height:340px;overflow:auto;}
+  .ledger ul{list-style:none;margin:0;padding:0;}
+  .ledger li{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    gap:12px;
+    align-items:center;
+    padding:9px 4px;
+    border-bottom:1px solid var(--line);
+    font-size:13px;
+  }
+  .ledger li:last-child{border-bottom:none;}
+  .ledger .who{font-weight:600;}
+  .ledger .note{color:var(--muted);font-size:12px;display:block;margin-top:2px;}
+  .ledger .time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;}
+
+  footer.bottom{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    color:#7C8B84;
+    font-size:12px;
+    padding:0 6px;
+  }
+  footer.bottom button{background:none;border:none;color:#B98A6F;text-decoration:underline;cursor:pointer;font-size:12px;}
+  .status-msg{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--gold);
+    min-height:14px;
+  }
+
+  .quicknav{
+    position:sticky;
+    top:0;
+    z-index:20;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    background:var(--ink);
+    padding:6px 4px 10px 4px;
+    margin:-6px 0 -4px 0;
+  }
+  .quicknav a{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:#CFE0D9;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
+    padding:6px 10px;
+    border-radius:20px;
+    text-decoration:none;
+  }
+  .quicknav a:hover{background:rgba(255,255,255,.14);}
+
+  .back-to-top{
+    position:fixed;
+    bottom:22px;
+    right:22px;
+    background:var(--teal);
+    color:white;
+    border:none;
+    border-radius:24px;
+    padding:10px 16px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,.35);
+    display:none;
+    z-index:30;
+  }
+  .back-to-top:hover{background:var(--teal-dark);}
+  .back-to-top.show{display:block;}
+
+  .gate-overlay{
+    position:fixed;
+    inset:0;
+    background:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:20px;
+  }
+  .gate-card{
+    background:var(--panel);
+    border-radius:14px;
+    padding:32px 28px;
+    width:100%;
+    max-width:340px;
+    text-align:center;
+  }
+  .gate-card .kicker{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+    display:block;
+    margin-bottom:4px;
+  }
+  .gate-card h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:22px;
+    margin:0 0 18px 0;
+    text-transform:none;
+    letter-spacing:normal;
+    color:var(--text);
+  }
+  .gate-card input{margin-bottom:10px;}
+  .gate-card button{width:100%;padding:11px;font-size:14px;}
+  .gate-error{color:var(--out);font-size:12px;min-height:16px;margin-top:8px;}
+
+  .log-filter-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+    flex-wrap:wrap;
+  }
+  .log-filter-row input[type=text]{flex:1;min-width:140px;}
+  select{
+    font-family:'Inter',sans-serif;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    border-radius:8px;
+    padding:9px 10px;
+    font-size:13px;
+    color:var(--text);
+  }
+  .log-count{font-size:12px;color:var(--muted);margin-bottom:6px;}
+</style>
+</head>
+<body>
+<div class="gate-overlay" id="gateOverlay">
+  <div class="gate-card">
+    <span class="kicker">Sign-In Desk</span>
+    <h2>Enter Password</h2>
+    <input type="password" id="gatePassword" placeholder="Password">
+    <button class="btn-teal" id="gateSubmit">Enter</button>
+    <div class="gate-error" id="gateError"></div>
+  </div>
+</div>
+<div class="app" id="appRoot" style="display:none;">
+  <header class="top">
+    <div class="brand">
+      <span class="kicker" id="today"></span>
+      <h1>Sign-In Desk</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="counts">
+        <div class="count-item in"><span class="n" id="countIn">0</span><span class="l">Checked In</span></div>
+        <div class="count-item out"><span class="n" id="countOut">0</span><span class="l">Checked Out</span></div>
+        <div class="count-item"><span class="n" id="countTotal">0</span><span class="l">Roster</span></div>
+      </div>
+      <a href="employee.html" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#CFE0D9;text-decoration:none;border:1px solid rgba(255,255,255,.18);padding:6px 12px;border-radius:20px;white-space:nowrap;">Employee Time Clock &rarr;</a>
+    </div>
+  </header>
+
+  <div class="quicknav">
+    <a href="#rosterCard">Roster</a>
+    <a href="#checkedInCard">Checked In</a>
+    <a href="#detailCard">Selected Student</a>
+    <a href="#ledgerCard">Activity Log</a>
+  </div>
+
+  <div class="grid">
+    <!-- Roster -->
+    <div class="card" id="rosterCard">
+      <h2>Roster</h2>
+
+      <div class="search-wrap">
+        <input type="text" id="search" placeholder="Search roster...">
+      </div>
+      <div class="class-filter-row">
+        <select id="classFilter"><option value="">All Classes</option></select>
+        <button class="link-btn" id="renameClassBtn" style="display:none;">Rename this class</button>
+      </div>
+
+      <ul class="roster-list" id="rosterList"></ul>
+      <div class="empty-note" id="rosterEmpty" style="display:none;">No students yet — add your first one below.</div>
+
+      <button class="link-btn" id="manageToggle" style="margin-top:14px;">+ Add / manage students</button>
+      <div class="manage-area" id="manageArea">
+        <datalist id="classOptions"></datalist>
+        <div class="add-row">
+          <input type="text" id="newName" placeholder="Add student name">
+          <input type="text" id="newClass" placeholder="Class (optional)" list="classOptions" style="max-width:150px;">
+          <button class="btn-teal" id="addBtn">Add</button>
+        </div>
+        <button class="link-btn" id="bulkToggle">+ paste a list of names</button>
+        <div class="bulk-area" id="bulkArea">
+          <textarea id="bulkNames" placeholder="One name per line"></textarea>
+          <input type="text" id="bulkClass" placeholder="Class for this list (optional)" list="classOptions">
+          <button class="btn-ghost" id="bulkAddBtn">Add all</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail + Ledger -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="card" id="checkedInCard">
+        <h2>Currently Checked In</h2>
+        <div class="search-wrap">
+          <input type="text" id="checkedInSearch" placeholder="Search checked-in students...">
+        </div>
+        <div class="class-filter-row">
+          <select id="checkedInClassFilter"><option value="">All Classes</option></select>
+        </div>
+        <div class="ledger" id="checkedInList"></div>
+      </div>
+
+      <div class="card" id="detailCard">
+        <h2>Selected Student</h2>
+        <div id="detailBody"></div>
+      </div>
+
+      <div class="card" id="ledgerCard">
+        <h2>Activity Log</h2>
+        <div class="log-filter-row">
+          <input type="text" id="logSearch" placeholder="Search by name or note...">
+          <select id="logDate"><option value="">All dates</option></select>
+        </div>
+        <div class="log-count" id="logCount"></div>
+        <div class="ledger" id="ledger"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bottom">
+    <span class="status-msg" id="statusMsg"></span>
+    <span>
+      <button id="refreshBtn">Refresh</button>
+      <button id="resetAll">Clear all data</button>
+    </span>
+  </footer>
+</div>
+<button class="back-to-top" id="backToTop">&uarr; Top</button>
+
+<div class="gate-overlay" id="flagAlertOverlay" style="display:none;background:rgba(181,80,44,.55);">
+  <div class="gate-card" style="max-width:380px;">
+    <span class="kicker" style="color:var(--out);">Attention Needed</span>
+    <h2 id="flagAlertName"></h2>
+    <p id="flagAlertMessage" style="font-size:15px;color:var(--text);margin:0 0 18px 0;"></p>
+    <button class="btn-teal" id="flagAlertOk">OK</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ====================================================================
+  // Site password gate — generate a hash with generate-password-hash.html
+  // and paste it below. Leave as-is (no PASTE_YOUR text) to disable the
+  // gate entirely.
+  // ====================================================================
+  const PASSWORD_HASH = 'PASTE_YOUR_PASSWORD_HASH_HERE';
+  const SESSION_KEY = 'signInDeskUnlocked';
+
+  async function sha256Hex(str){
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function sessionUnlocked(){
+    try{ return sessionStorage.getItem(SESSION_KEY) === '1'; }catch(e){ return false; }
+  }
+  function markUnlocked(){
+    try{ sessionStorage.setItem(SESSION_KEY, '1'); }catch(e){ /* ignore */ }
+  }
+
+  function unlockApp(){
+    document.getElementById('gateOverlay').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'flex';
+    load();
+  }
+
+  const gateEnabled = !!PASSWORD_HASH && !PASSWORD_HASH.includes('PASTE_YOUR');
+
+  if(!gateEnabled || sessionUnlocked()){
+    unlockApp();
+  }else{
+    document.getElementById('gateSubmit').addEventListener('click', async ()=>{
+      const val = document.getElementById('gatePassword').value;
+      const hash = await sha256Hex(val);
+      if(hash === PASSWORD_HASH){
+        markUnlocked();
+        unlockApp();
+      }else{
+        document.getElementById('gateError').textContent = 'Incorrect password.';
+        document.getElementById('gatePassword').value = '';
+      }
+    });
+    document.getElementById('gatePassword').addEventListener('keydown', (e)=>{
+      if(e.key==='Enter') document.getElementById('gateSubmit').click();
+    });
+    document.getElementById('gatePassword').focus();
+  }
+
+
+  let data = { students: [], events: [], settings: {} };
+  let selectedId = null;
+
+  // ====================================================================
+  // 1) Deploy the companion Google Apps Script (see DEPLOYMENT.md)
+  // 2) Paste the Web App URL it gives you below, between the quotes
+  // ====================================================================
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxrWo3nht962zuXiWfmyK53yCcUJSLm3Mv5tK5V28SiiO8d7MTxyCg3qucMm6UR7w6q/exec';
+
+  const rosterList = document.getElementById('rosterList');
+  const rosterEmpty = document.getElementById('rosterEmpty');
+  const detailBody = document.getElementById('detailBody');
+  const ledgerEl = document.getElementById('ledger');
+  const searchInput = document.getElementById('search');
+  const statusMsg = document.getElementById('statusMsg');
+
+  document.getElementById('today').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+
+  function fmtTime(ts){
+    return new Date(ts).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  }
+
+  function statusOf(studentId){
+    const evs = data.events.filter(e=>e.studentId===studentId);
+    if(evs.length===0) return 'out';
+    return evs[evs.length-1].type;
+  }
+
+  let flashTimer;
+  function flash(msg, persist){
+    statusMsg.textContent = msg;
+    clearTimeout(flashTimer);
+    if(!persist){
+      flashTimer = setTimeout(()=>{ statusMsg.textContent=''; }, 3500);
+    }
+  }
+
+  async function apiGet(){
+    const res = await fetch(API_URL);
+    if(!res.ok) throw new Error('Request failed');
+    return res.json();
+  }
+
+  async function apiPost(payload){
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error('Request failed');
+    return res.json();
+  }
+
+  async function load(quiet){
+    if(API_URL.includes('PASTE_YOUR')){
+      flash('Not connected yet — set API_URL at the top of the script. See DEPLOYMENT.md.', true);
+      render();
+      return;
+    }
+    if(!quiet) flash('Syncing…', true);
+    try{
+      const fresh = await apiGet();
+      if(fresh && Array.isArray(fresh.students) && Array.isArray(fresh.events)){
+        data = { students: fresh.students, events: fresh.events, settings: fresh.settings || {} };
+      }
+      if(!quiet) flash('');
+    }catch(e){
+      flash('Could not reach the server — check your connection.');
+    }
+    render();
+  }
+
+  // Background refresh, so changes made on other computers show up here too
+  setInterval(()=>load(true), 15000);
+  // Re-render on its own too, so "checked in for too long" flags update live
+  // even between syncs
+  setInterval(()=>renderCheckedIn(), 30000);
+
+  async function addStudent(name, className){
+    name = name.trim();
+    if(!name) return;
+    className = (className||'').trim();
+    flash('Saving…', true);
+    try{
+      const res = await apiPost({ action: 'addStudent', name, className });
+      if(res && res.id){
+        data.students.push({ id: res.id, name, class: className, alertMinutes: null, flagged: false, flagMessage: '' });
+        render();
+      }
+      flash('');
+    }catch(e){
+      flash('Could not save — try again.');
+    }
+  }
+
+  document.getElementById('addBtn').addEventListener('click', ()=>{
+    const input = document.getElementById('newName');
+    const classInput = document.getElementById('newClass');
+    addStudent(input.value, classInput.value);
+    input.value = '';
+    classInput.value = '';
+    input.focus();
+  });
+  document.getElementById('newName').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){ document.getElementById('addBtn').click(); }
+  });
+
+  document.getElementById('manageToggle').addEventListener('click', ()=>{
+    const area = document.getElementById('manageArea');
+    const nowOpen = area.classList.toggle('open');
+    document.getElementById('manageToggle').textContent = nowOpen ? '– Add / manage students' : '+ Add / manage students';
+  });
+
+  document.getElementById('bulkToggle').addEventListener('click', ()=>{
+    document.getElementById('bulkArea').classList.toggle('open');
+  });
+  document.getElementById('bulkAddBtn').addEventListener('click', async ()=>{
+    const ta = document.getElementById('bulkNames');
+    const classInput = document.getElementById('bulkClass');
+    const lines = ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(lines.length===0) return;
+    flash('Adding students…', true);
+    try{
+      const res = await apiPost({ action: 'bulkAddStudents', names: lines, className: classInput.value.trim() });
+      if(res && Array.isArray(res.created)){
+        res.created.forEach(s=>{
+          data.students.push({ id: s.id, name: s.name, class: s.class || '', alertMinutes: null, flagged: false, flagMessage: '' });
+        });
+        render();
+      }
+      flash('');
+    }catch(e){
+      flash('Could not save — try again.');
+    }
+    ta.value = '';
+    classInput.value = '';
+    document.getElementById('bulkArea').classList.remove('open');
+  });
+
+  function getClasses(){
+    return Array.from(new Set(data.students.map(s=>s.class).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+  }
+
+  function populateClassUI(){
+    const classes = getClasses();
+    const datalist = document.getElementById('classOptions');
+    datalist.innerHTML = classes.map(c=>`<option value="${escapeHtml(c)}"></option>`).join('');
+
+    const filter = document.getElementById('classFilter');
+    const prev = filter.value;
+    filter.innerHTML = '<option value="">All Classes</option>' + classes.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    if(classes.includes(prev)) filter.value = prev;
+
+    document.getElementById('renameClassBtn').style.display = filter.value ? 'inline' : 'none';
+
+    const checkedInFilter = document.getElementById('checkedInClassFilter');
+    const prevCheckedIn = checkedInFilter.value;
+    checkedInFilter.innerHTML = '<option value="">All Classes</option>' + classes.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    if(classes.includes(prevCheckedIn)) checkedInFilter.value = prevCheckedIn;
+  }
+
+  function debounce(fn, delay){
+    let t;
+    return function(...args){
+      clearTimeout(t);
+      t = setTimeout(()=>fn.apply(this, args), delay);
+    };
+  }
+
+  document.getElementById('classFilter').addEventListener('change', ()=>{
+    document.getElementById('renameClassBtn').style.display = document.getElementById('classFilter').value ? 'inline' : 'none';
+    renderRoster();
+  });
+
+  document.getElementById('checkedInClassFilter').addEventListener('change', renderCheckedIn);
+  document.getElementById('checkedInSearch').addEventListener('input', debounce(renderCheckedIn, 150));
+
+  document.getElementById('renameClassBtn').addEventListener('click', async ()=>{
+    const oldName = document.getElementById('classFilter').value;
+    if(!oldName) return;
+    const newName = window.prompt(`Rename class "${oldName}" to:`, oldName);
+    if(newName===null || !newName.trim() || newName.trim()===oldName) return;
+    const trimmedNew = newName.trim();
+    flash('Renaming…', true);
+    try{
+      await apiPost({ action:'renameClass', oldName, newName: trimmedNew });
+      data.students.forEach(s=>{ if(s.class===oldName) s.class = trimmedNew; });
+      document.getElementById('classFilter').value = trimmedNew;
+      render();
+      flash('');
+    }catch(e){
+      flash('Could not rename — try again.');
+    }
+  });
+
+  searchInput.addEventListener('input', debounce(renderRoster, 150));
+
+  document.getElementById('logSearch').addEventListener('input', debounce(renderLedger, 150));
+  document.getElementById('logDate').addEventListener('change', renderLedger);
+
+  const backToTop = document.getElementById('backToTop');
+  window.addEventListener('scroll', ()=>{
+    backToTop.classList.toggle('show', window.scrollY > 300);
+  });
+  backToTop.addEventListener('click', ()=>{
+    window.scrollTo({ top:0, behavior:'smooth' });
+  });
+
+  document.getElementById('refreshBtn').addEventListener('click', ()=>load(false));
+
+  document.getElementById('resetAll').addEventListener('click', async ()=>{
+    if(!confirm('Clear all students and log entries? This cannot be undone.')) return;
+    flash('Clearing…', true);
+    try{
+      await apiPost({ action: 'reset' });
+      selectedId = null;
+      data = { students: [], events: [], settings: data.settings };
+      render();
+      flash('');
+    }catch(e){
+      flash('Could not clear — try again.');
+    }
+  });
+
+  async function removeStudent(id){
+    if(!confirm('Remove this student from the roster? Their log entries will be kept.')) return;
+    if(selectedId===id) selectedId = null;
+    flash('Removing…', true);
+    try{
+      await apiPost({ action: 'removeStudent', id });
+      data.students = data.students.filter(s=>s.id!==id);
+      render();
+      flash('');
+    }catch(e){
+      flash('Could not remove — try again.');
+    }
+  }
+
+  function selectStudent(id){
+    selectedId = id;
+    render();
+  }
+
+  function deselectStudent(){
+    selectedId = null;
+    render();
+  }
+
+  async function toggleStatus(id){
+    const current = statusOf(id);
+    const next = current==='in' ? 'out' : 'in';
+    let note = '';
+    if(selectedId === id){
+      const noteInput = document.getElementById('noteInput');
+      note = noteInput ? noteInput.value.trim() : '';
+    }
+    flash('Saving…', true);
+    try{
+      const res = await apiPost({ action: 'addEvent', studentId: id, type: next, note });
+      const timestamp = (res && res.timestamp) ? res.timestamp : Date.now();
+      const eventId = (res && res.id) ? res.id : ('local-' + timestamp);
+      data.events.push({ id: eventId, studentId: id, type: next, timestamp, note });
+      render();
+      flash('');
+      if(next === 'in'){
+        const student = data.students.find(s=>s.id===id);
+        if(student && student.flagged){
+          showFlagAlert(student);
+        }
+      }
+    }catch(e){
+      flash('Could not save — try again.');
+    }
+  }
+
+  function showFlagAlert(student){
+    document.getElementById('flagAlertName').textContent = student.name;
+    document.getElementById('flagAlertMessage').textContent = student.flagMessage || 'Please see the instructor.';
+    const overlay = document.getElementById('flagAlertOverlay');
+    overlay.style.display = 'flex';
+  }
+  document.getElementById('flagAlertOk').addEventListener('click', ()=>{
+    document.getElementById('flagAlertOverlay').style.display = 'none';
+  });
+
+  // Returns the alert threshold in minutes for a student, or null if they
+  // don't have one set — in which case they're never flagged as overdue.
+  function getAlertThreshold(student){
+    return (student.alertMinutes !== null && student.alertMinutes !== undefined && student.alertMinutes !== '')
+      ? Number(student.alertMinutes)
+      : null;
+  }
+
+  function renderRoster(){
+    const q = searchInput.value.trim().toLowerCase();
+    const classFilter = document.getElementById('classFilter').value;
+    const students = data.students
+      .filter(s=>s.name.toLowerCase().includes(q))
+      .filter(s=>!classFilter || s.class===classFilter)
+      .sort((a,b)=>a.name.localeCompare(b.name));
+
+    rosterList.innerHTML = '';
+    rosterEmpty.style.display = data.students.length===0 ? 'block' : 'none';
+
+    students.forEach(s=>{
+      const st = statusOf(s.id);
+      const li = document.createElement('li');
+      li.className = s.id===selectedId ? 'selected' : '';
+      li.innerHTML = `
+        <span class="name"></span>
+        ${s.flagged ? `<span class="flag-icon" title="Flagged">&#9873;</span>` : ''}
+        ${(s.alertMinutes !== null && s.alertMinutes !== undefined) ? `<span class="alert-min-tag" title="Custom alert threshold">${s.alertMinutes}m</span>` : ''}
+        ${(!classFilter && s.class) ? `<span class="class-tag"></span>` : ''}
+        <button class="badge ${st}" title="Click to ${st==='in'?'check out':'check in'}">${st==='in'?'In':'Out'}</button>
+      `;
+      li.querySelector('.name').textContent = s.name;
+      if(!classFilter && s.class){ li.querySelector('.class-tag').textContent = s.class; }
+      li.addEventListener('click', (e)=>{
+        if(e.target.classList.contains('badge')) return;
+        selectStudent(s.id);
+      });
+      li.querySelector('.badge').addEventListener('click', (e)=>{
+        e.stopPropagation();
+        toggleStatus(s.id);
+      });
+      rosterList.appendChild(li);
+    });
+  }
+
+  function renderDetail(){
+    if(!selectedId || !data.students.find(s=>s.id===selectedId)){
+      detailBody.innerHTML = '<div class="detail-empty">Select a student from the roster to check them in or out.</div>';
+      return;
+    }
+    const student = data.students.find(s=>s.id===selectedId);
+    const st = statusOf(student.id);
+    const nextLabel = st==='in' ? 'Check Out' : 'Check In';
+    const nextClass = st==='in' ? 'to-out' : 'to-in';
+
+    const history = data.events.filter(e=>e.studentId===student.id).slice().reverse().slice(0,8);
+    const historyHtml = history.length
+      ? history.map(e=>`<li><span class="stamp ${e.type}">${e.type==='in'?'IN':'OUT'}</span> &nbsp;${fmtTime(e.timestamp)}${e.note ? ' — '+escapeHtml(e.note) : ''}</li>`).join('')
+      : '<li style="color:var(--muted);border:none;">No activity yet.</li>';
+
+    detailBody.innerHTML = `
+      <div class="detail-head">
+        <h3></h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge ${st}">${st==='in'?'Currently In':'Currently Out'}</span>
+          <button class="close-detail-btn" id="closeDetailBtn" title="Deselect student">&times;</button>
+        </div>
+      </div>
+      <button class="toggle-btn ${nextClass}" id="toggleBtn">${nextLabel}</button>
+      <div class="note-row">
+        <input type="text" id="noteInput" placeholder="Optional note (e.g. picked up by parent)">
+      </div>
+
+      <h2 style="margin-top:18px;">Student Settings</h2>
+      <div class="settings-field">
+        <label for="studentAlertInput">Alert after this many minutes checked in</label>
+        <input type="number" id="studentAlertInput" min="1" placeholder="No alert unless set" value="${student.alertMinutes !== null && student.alertMinutes !== undefined ? student.alertMinutes : ''}">
+        <div class="settings-current-value">Currently: ${(student.alertMinutes !== null && student.alertMinutes !== undefined) ? student.alertMinutes + ' minutes' : 'no alert set'}</div>
+      </div>
+      <div class="settings-field settings-checkbox-row">
+        <label><input type="checkbox" id="studentFlagInput" ${student.flagged ? 'checked' : ''}> Flag this student — show an alert when they check in</label>
+      </div>
+      <div class="settings-field">
+        <input type="text" id="studentFlagMessage" placeholder="Message to show (e.g. See instructor)" value="${escapeHtml(student.flagMessage || '')}">
+      </div>
+      <button class="btn-ghost" id="saveStudentSettingsBtn" style="width:100%;">Save Settings</button>
+
+      <h2 style="margin-top:18px;">Recent Activity</h2>
+      <ul class="mini-log">${historyHtml}</ul>
+
+      <button class="btn-ghost danger-btn" id="removeStudentBtn" style="width:100%;margin-top:18px;">Remove This Student From Roster</button>
+    `;
+    detailBody.querySelector('h3').textContent = student.name;
+    document.getElementById('toggleBtn').addEventListener('click', ()=>toggleStatus(student.id));
+    document.getElementById('closeDetailBtn').addEventListener('click', deselectStudent);
+    document.getElementById('removeStudentBtn').addEventListener('click', ()=>removeStudent(student.id));
+    document.getElementById('saveStudentSettingsBtn').addEventListener('click', async ()=>{
+      const alertVal = document.getElementById('studentAlertInput').value;
+      const flagged = document.getElementById('studentFlagInput').checked;
+      const flagMessage = document.getElementById('studentFlagMessage').value.trim();
+      flash('Saving…', true);
+      try{
+        const res = await apiPost({
+          action: 'updateStudent',
+          id: student.id,
+          alertMinutes: alertVal === '' ? '' : Number(alertVal),
+          flagged: flagged,
+          flagMessage: flagMessage
+        });
+        if(res && res.error){
+          flash('Save failed: ' + res.error + ' — make sure the Apps Script was redeployed with "New version" after updating Code.gs.');
+          return;
+        }
+        if(!res || res.ok !== true){
+          flash('Save may not have worked — make sure the Apps Script was redeployed with "New version" after updating Code.gs.');
+          return;
+        }
+        const s = data.students.find(x=>x.id===student.id);
+        if(s){
+          s.alertMinutes = alertVal === '' ? null : Number(alertVal);
+          s.flagged = flagged;
+          s.flagMessage = flagMessage;
+        }
+        render();
+        flash('Settings saved.');
+      }catch(e){
+        flash('Could not save — try again.');
+      }
+    });
+  }
+
+  function dateKey(ts){
+    return new Date(ts).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
+  }
+
+  function populateDateFilter(){
+    const sel = document.getElementById('logDate');
+    const prevValue = sel.value;
+    const dates = Array.from(new Set(data.events.map(e=>dateKey(e.timestamp))));
+    // sort newest first based on actual timestamps
+    const dateToTs = {};
+    data.events.forEach(e=>{ const k=dateKey(e.timestamp); if(!dateToTs[k] || e.timestamp>dateToTs[k]) dateToTs[k]=e.timestamp; });
+    dates.sort((a,b)=>dateToTs[b]-dateToTs[a]);
+    sel.innerHTML = '<option value="">All dates</option>' + dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+    if(dates.includes(prevValue)) sel.value = prevValue;
+  }
+
+  function renderLedger(){
+    populateDateFilter();
+    const q = document.getElementById('logSearch').value.trim().toLowerCase();
+    const dateFilter = document.getElementById('logDate').value;
+
+    let events = data.events.slice().sort((a,b)=>b.timestamp-a.timestamp);
+
+    if(dateFilter){
+      events = events.filter(e=>dateKey(e.timestamp)===dateFilter);
+    }
+    if(q){
+      events = events.filter(e=>{
+        const student = data.students.find(s=>s.id===e.studentId);
+        const name = student ? student.name.toLowerCase() : '';
+        const note = (e.note||'').toLowerCase();
+        return name.includes(q) || note.includes(q);
+      });
+    }
+
+    const totalCount = events.length;
+    const shown = events.slice(0,150);
+    document.getElementById('logCount').textContent =
+      totalCount===0 ? '' : `${totalCount} entr${totalCount===1?'y':'ies'}${totalCount>150 ? ' (showing most recent 150)':''}`;
+
+    if(shown.length===0){
+      ledgerEl.innerHTML = `<div class="empty-note">${data.events.length===0 ? 'No check-ins or check-outs recorded yet.' : 'No matching entries.'}</div>`;
+      return;
+    }
+    const rows = shown.map(e=>{
+      const student = data.students.find(s=>s.id===e.studentId);
+      const name = student ? student.name : '(removed student)';
+      return `<li>
+        <span class="stamp ${e.type}">${e.type==='in'?'IN':'OUT'}</span>
+        <span><span class="who"></span>${e.note ? '<span class="note"></span>' : ''}</span>
+        <span class="time">${fmtTime(e.timestamp)} &middot; ${dateKey(e.timestamp)}</span>
+      </li>`;
+    });
+    ledgerEl.innerHTML = `<ul>${rows.join('')}</ul>`;
+    const lis = ledgerEl.querySelectorAll('li');
+    shown.forEach((e,i)=>{
+      const student = data.students.find(s=>s.id===e.studentId);
+      const name = student ? student.name : '(removed student)';
+      lis[i].querySelector('.who').textContent = name;
+      const noteEl = lis[i].querySelector('.note');
+      if(noteEl) noteEl.textContent = ' — ' + e.note;
+    });
+  }
+
+  function renderCheckedIn(){
+    const checkedInList = document.getElementById('checkedInList');
+    const classFilter = document.getElementById('checkedInClassFilter').value;
+    const q = document.getElementById('checkedInSearch').value.trim().toLowerCase();
+    const now = Date.now();
+    const inStudents = data.students
+      .filter(s=>statusOf(s.id)==='in')
+      .filter(s=>!classFilter || s.class===classFilter)
+      .filter(s=>s.name.toLowerCase().includes(q))
+      .map(s=>{
+        const evs = data.events.filter(e=>e.studentId===s.id);
+        const lastIn = evs.length ? evs[evs.length-1] : null;
+        const since = lastIn ? lastIn.timestamp : null;
+        const minutesIn = since ? (now - since)/60000 : 0;
+        const threshold = getAlertThreshold(s);
+        const overdue = (since && threshold !== null) ? (minutesIn > threshold) : false;
+        return { student: s, since, minutesIn, overdue };
+      })
+      .sort((a,b)=>a.student.name.localeCompare(b.student.name));
+
+    if(inStudents.length===0){
+      const anyoneInAtAll = data.students.some(s=>statusOf(s.id)==='in');
+      const msg = anyoneInAtAll ? 'No matching students.' : 'No one is currently checked in.';
+      checkedInList.innerHTML = `<div class="empty-note">${msg}</div>`;
+      return;
+    }
+    checkedInList.innerHTML = inStudents.map(x=>`
+      <div class="checked-in-row ${x.overdue ? 'overdue-row' : ''}">
+        <span class="name"></span>
+        ${x.student.flagged ? `<span class="flag-icon" title="Flagged">&#9873;</span>` : ''}
+        ${(!classFilter && x.student.class) ? `<span class="class-tag"></span>` : ''}
+        ${x.overdue ? `<span class="overdue-tag">${Math.floor(x.minutesIn)}m</span>` : ''}
+        <span class="time">${x.since ? 'since '+fmtTime(x.since) : ''}</span>
+        <button class="quick-out-btn" data-id="${x.student.id}">Check Out</button>
+      </div>
+    `).join('');
+    const rows = checkedInList.querySelectorAll('.checked-in-row .name');
+    inStudents.forEach((x,i)=>{ rows[i].textContent = x.student.name; });
+    const classTags = checkedInList.querySelectorAll('.checked-in-row .class-tag');
+    let ci = 0;
+    inStudents.forEach((x)=>{ if(!classFilter && x.student.class){ classTags[ci].textContent = x.student.class; ci++; } });
+    checkedInList.querySelectorAll('.quick-out-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>toggleStatus(btn.dataset.id));
+    });
+  }
+
+  function renderCounts(){
+    const inCount = data.students.filter(s=>statusOf(s.id)==='in').length;
+    document.getElementById('countIn').textContent = inCount;
+    document.getElementById('countOut').textContent = data.students.length - inCount;
+    document.getElementById('countTotal').textContent = data.students.length;
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function render(){
+    populateClassUI();
+    renderRoster();
+    renderCheckedIn();
+    renderDetail();
+    renderLedger();
+    renderCounts();
+  }
+
+})();
+</script>
+</body>
+</html>
