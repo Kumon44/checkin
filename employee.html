@@ -49,6 +49,8 @@
   .card h2{font-family:'Space Grotesk',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px 0;color:var(--teal-dark);}
 
   .add-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+  .manage-area{display:none;flex-direction:column;gap:8px;margin-top:10px;padding-top:12px;border-top:1px solid var(--line);}
+  .manage-area.open{display:flex;}
   .add-row input{flex:1;min-width:110px;}
   input[type=text], input[type=password], input[type=date], textarea{
     font-family:'Inter',sans-serif;border:1px solid var(--line);background:var(--panel-2);
@@ -206,16 +208,20 @@
   <div class="grid">
     <div class="card" id="rosterCard">
       <h2>Staff</h2>
-      <div class="add-row">
-        <input type="text" id="newName" placeholder="Employee name">
-        <input type="password" id="newPassword" placeholder="Set a password">
-        <button class="btn-teal" id="addBtn">Add</button>
-      </div>
       <div class="search-wrap">
         <input type="text" id="search" placeholder="Search staff...">
       </div>
       <ul class="roster-list" id="rosterList"></ul>
-      <div class="empty-note" id="rosterEmpty" style="display:none;">No staff yet — add someone above.</div>
+      <div class="empty-note" id="rosterEmpty" style="display:none;">No staff yet — add someone below.</div>
+
+      <button class="link-btn" id="manageStaffToggle" style="margin-top:14px;">+ Add staff</button>
+      <div class="manage-area" id="manageStaffArea">
+        <div class="add-row">
+          <input type="text" id="newName" placeholder="Employee name">
+          <input type="password" id="newPassword" placeholder="Set a password">
+          <button class="btn-teal" id="addBtn">Add</button>
+        </div>
+      </div>
     </div>
 
     <div style="display:flex;flex-direction:column;gap:20px;">
@@ -280,6 +286,38 @@
             <button class="btn-teal" id="exportBtn">Export CSV</button>
           </div>
           <div class="export-note">Calculates total hours worked per employee between the selected dates (inclusive), by pairing each clock-in with the next clock-out. Sessions that don't have a matching pair are flagged in the export for manual review.</div>
+
+          <h3 class="subhead">Export Individual Employee Record</h3>
+          <div class="export-row">
+            <div class="export-field">
+              <label for="individualEmployee">Employee</label>
+              <select id="individualEmployee"></select>
+            </div>
+            <div class="export-field">
+              <label for="individualStart">From</label>
+              <input type="date" id="individualStart">
+            </div>
+            <div class="export-field">
+              <label for="individualEnd">To</label>
+              <input type="date" id="individualEnd">
+            </div>
+            <button class="btn-teal" id="individualExportBtn">Export CSV</button>
+          </div>
+          <div class="export-note">Downloads every individual clock-in/out entry for one employee within the selected dates (inclusive) — a detailed record rather than just totals.</div>
+
+          <h3 class="subhead">Change Employee Password</h3>
+          <div class="export-row">
+            <div class="export-field">
+              <label for="passwordChangeEmployee">Employee</label>
+              <select id="passwordChangeEmployee"></select>
+            </div>
+            <div class="export-field">
+              <label for="passwordChangeNew">New password</label>
+              <input type="password" id="passwordChangeNew" placeholder="New password">
+            </div>
+            <button class="btn-teal" id="passwordChangeBtn">Update Password</button>
+          </div>
+          <div class="modal-error" id="passwordChangeError"></div>
 
         </div>
       </div>
@@ -410,6 +448,12 @@
   setInterval(()=>load(true), 15000);
 
   // ---- add employee ----
+  document.getElementById('manageStaffToggle').addEventListener('click', ()=>{
+    const area = document.getElementById('manageStaffArea');
+    const nowOpen = area.classList.toggle('open');
+    document.getElementById('manageStaffToggle').textContent = nowOpen ? '– Add staff' : '+ Add staff';
+  });
+
   document.getElementById('addBtn').addEventListener('click', async ()=>{
     const nameInput = document.getElementById('newName');
     const pwInput = document.getElementById('newPassword');
@@ -493,8 +537,7 @@
   const lockedNotice = document.getElementById('lockedNotice');
   const protectedContent = document.getElementById('protectedContent');
 
-  function populateManualEmployeeSelect(){
-    const sel = document.getElementById('manualEmployee');
+  function fillEmployeeSelect(sel){
     const prev = sel.value;
     sel.innerHTML = '';
     data.employees.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(emp=>{
@@ -504,6 +547,12 @@
       sel.appendChild(opt);
     });
     if(Array.from(sel.options).some(o=>o.value===prev)) sel.value = prev;
+  }
+
+  function populateManualEmployeeSelect(){
+    fillEmployeeSelect(document.getElementById('manualEmployee'));
+    fillEmployeeSelect(document.getElementById('individualEmployee'));
+    fillEmployeeSelect(document.getElementById('passwordChangeEmployee'));
   }
 
   editToggleBtn.addEventListener('click', ()=>{
@@ -929,6 +978,62 @@
     });
     downloadCSV(`payroll-hours_${start}_to_${end}.csv`, lines.join('\n'));
     flash('Export downloaded.');
+  });
+
+  document.getElementById('individualExportBtn').addEventListener('click', ()=>{
+    const employeeId = document.getElementById('individualEmployee').value;
+    const start = document.getElementById('individualStart').value;
+    const end = document.getElementById('individualEnd').value;
+    if(!employeeId){ flash('Add an employee first.'); return; }
+    if(!start || !end){ flash('Pick a start and end date first.'); return; }
+    if(start > end){ flash('Start date must be before end date.'); return; }
+    const emp = data.employees.find(e=>e.id===employeeId);
+    const startTs = new Date(start + 'T00:00:00').getTime();
+    const endTs = new Date(end + 'T23:59:59').getTime();
+    const evs = data.events
+      .filter(e=>e.employeeId===employeeId && e.timestamp>=startTs && e.timestamp<=endTs)
+      .sort((a,b)=>a.timestamp-b.timestamp);
+
+    if(evs.length===0){ flash('No entries found for that employee in that range.'); return; }
+
+    const header = ['Date','Time','Type'];
+    const lines = [header.join(',')];
+    evs.forEach(e=>{
+      lines.push([dateKey(e.timestamp), fmtTime(e.timestamp), e.type==='in'?'Clock In':'Clock Out'].join(','));
+    });
+    const totalMs = (function(){
+      let ms=0, pendingIn=null;
+      evs.forEach(e=>{
+        if(e.type==='in') pendingIn = e.timestamp;
+        else if(e.type==='out' && pendingIn!==null){ ms += e.timestamp - pendingIn; pendingIn = null; }
+      });
+      return ms;
+    })();
+    lines.push('');
+    lines.push(['Total Hours', (totalMs/3600000).toFixed(2)].join(','));
+
+    const safeName = (emp ? emp.name : 'employee').replace(/[^a-z0-9]+/gi, '_');
+    downloadCSV(`${safeName}_${start}_to_${end}.csv`, lines.join('\n'));
+    flash('Export downloaded.');
+  });
+
+  document.getElementById('passwordChangeBtn').addEventListener('click', async ()=>{
+    const employeeId = document.getElementById('passwordChangeEmployee').value;
+    const newPassword = document.getElementById('passwordChangeNew').value;
+    const errorEl = document.getElementById('passwordChangeError');
+    errorEl.textContent = '';
+    if(!employeeId){ flash('Add an employee first.'); return; }
+    if(!newPassword){ errorEl.textContent = 'Enter a new password.'; return; }
+    flash('Updating…', true);
+    try{
+      const res = await apiPost({ action:'changeEmployeePassword', id: employeeId, newPassword, password: adminPassword });
+      if(res && res.error){ errorEl.textContent = res.error; flash(''); return; }
+      document.getElementById('passwordChangeNew').value = '';
+      flash('Password updated.');
+    }catch(e){
+      errorEl.textContent = 'Network error — try again.';
+      flash('');
+    }
   });
 
   load();
