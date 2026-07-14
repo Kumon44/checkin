@@ -707,29 +707,57 @@
   // ---- rendering ----
   function renderRoster(){
     const q = searchInput.value.trim().toLowerCase();
-    const employees = data.employees.filter(e=>e.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
+    const employees = data.employees
+      .filter(e=>e.name.toLowerCase().includes(q))
+      .filter(e=> editMode ? true : e.active !== false)
+      .sort((a,b)=>{
+        // active employees first, then alphabetical
+        if((a.active !== false) !== (b.active !== false)) return (a.active !== false) ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
     rosterList.innerHTML = '';
     rosterEmpty.style.display = data.employees.length===0 ? 'block' : 'none';
     employees.forEach(emp=>{
+      const isActive = emp.active !== false;
       const st = statusOf(emp.id);
       const li = document.createElement('li');
+      if(!isActive) li.style.opacity = '0.5';
       li.innerHTML = `
         <span class="name"></span>
-        <button class="badge ${st}" title="Click to ${st==='in'?'clock out':'clock in'}">${st==='in'?'In':'Out'}</button>
+        ${!isActive ? `<span class="badge out" style="cursor:default;">Inactive</span>` : `<button class="badge ${st}" title="Click to ${st==='in'?'clock out':'clock in'}">${st==='in'?'In':'Out'}</button>`}
+        ${editMode ? `<button class="edit-entry-btn" data-action="toggle-active">${isActive ? 'Deactivate' : 'Reactivate'}</button>` : ''}
         ${editMode ? `<button class="remove-x" title="Remove employee">&times;</button>` : ''}
       `;
       li.querySelector('.name').textContent = emp.name;
-      li.querySelector('.badge').addEventListener('click', ()=>openClockModal(emp.id, emp.name));
+      if(isActive){
+        li.querySelector('.badge').addEventListener('click', ()=>openClockModal(emp.id, emp.name));
+      }
       if(editMode){
+        li.querySelector('[data-action="toggle-active"]').addEventListener('click', ()=>setEmployeeActive(emp.id, !isActive));
         li.querySelector('.remove-x').addEventListener('click', ()=>removeEmployee(emp.id));
       }
       rosterList.appendChild(li);
     });
   }
 
+  async function setEmployeeActive(id, active){
+    flash(active ? 'Reactivating…' : 'Deactivating…', true);
+    try{
+      const res = await apiPost({ action:'setEmployeeActive', id, active, password: adminPassword });
+      if(res && res.error){ flash(res.error); return; }
+      const emp = data.employees.find(e=>e.id===id);
+      if(emp) emp.active = active;
+      render();
+      flash(active ? 'Reactivated.' : 'Deactivated.');
+    }catch(e){
+      flash('Could not update — try again.');
+    }
+  }
+
   function renderCheckedIn(){
     const el = document.getElementById('checkedInList');
     const inList = data.employees
+      .filter(e=>e.active !== false)
       .filter(e=>statusOf(e.id)==='in')
       .map(e=>{
         const evs = data.events.filter(ev=>ev.employeeId===e.id);
