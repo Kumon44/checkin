@@ -9,7 +9,8 @@
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
   :root{
-    --ink:#152420;
+    --ink:#DCEEFA;
+    --ink-text:#123A5C;
     --panel:#F4EFE3;
     --panel-2:#FFFDF7;
     --teal:#1F6F63;
@@ -40,7 +41,7 @@
     align-items:flex-end;
     flex-wrap:wrap;
     gap:12px;
-    color:var(--panel-2);
+    color:var(--ink-text);
     padding:0 4px;
   }
   .brand{display:flex;flex-direction:column;gap:2px;}
@@ -67,9 +68,9 @@
     text-align:right;
   }
   .count-item .n{font-size:22px;font-weight:600;display:block;line-height:1;}
-  .count-item .l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9FB0AA;}
-  .count-item.in .n{color:#7FD9AE;}
-  .count-item.out .n{color:#E8A480;}
+  .count-item .l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#5C7C94;}
+  .count-item.in .n{color:var(--in);}
+  .count-item.out .n{color:var(--out);}
 
   .grid{
     display:grid;
@@ -363,14 +364,14 @@
     font-size:11px;
     letter-spacing:.04em;
     text-transform:uppercase;
-    color:#CFE0D9;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.14);
+    color:var(--teal-dark);
+    background:rgba(0,0,0,.05);
+    border:1px solid rgba(0,0,0,.12);
     padding:6px 10px;
     border-radius:20px;
     text-decoration:none;
   }
-  .quicknav a:hover{background:rgba(255,255,255,.14);}
+  .quicknav a:hover{background:rgba(0,0,0,.1);}
 
   .back-to-top{
     position:fixed;
@@ -536,7 +537,7 @@
         <div class="count-item out"><span class="n" id="countOut">0</span><span class="l">Checked Out</span></div>
         <div class="count-item"><span class="n" id="countTotal">0</span><span class="l">Roster</span></div>
       </div>
-      <a href="employee.html" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#CFE0D9;text-decoration:none;border:1px solid rgba(255,255,255,.18);padding:6px 12px;border-radius:20px;white-space:nowrap;">Employee Time Clock &rarr;</a>
+      <a href="employee.html" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--teal-dark);text-decoration:none;border:1px solid rgba(0,0,0,.15);padding:6px 12px;border-radius:20px;white-space:nowrap;">Employee Time Clock &rarr;</a>
     </div>
   </header>
 
@@ -991,8 +992,8 @@
   let scanStream = null;
   let scanning = false;
   let scanFacingMode = 'environment';
-  let lastScanId = null;
-  let lastScanTime = 0;
+  const scanPending = new Set();      // ids currently mid-toggle (network in flight)
+  const scanCooldownUntil = {};       // id -> timestamp until which re-scans are ignored
   const qrCanvas = document.createElement('canvas');
   const qrCtx = qrCanvas.getContext('2d', { willReadFrequently: true });
 
@@ -1053,27 +1054,36 @@
   }
 
   async function handleScanResult(text){
-    const now = Date.now();
     if(!text.startsWith(QR_PREFIX)) return;
     const id = text.slice(QR_PREFIX.length);
-    // Debounce: ignore the same code again for a couple seconds so one
-    // scan doesn't fire repeatedly while the badge is still in frame.
-    if(id === lastScanId && (now - lastScanTime) < 2500) return;
+    const now = Date.now();
+    const statusEl = document.getElementById('scanStatus');
+
+    // Already mid-toggle for this student — ignore extra frames that
+    // detect the same code before the first scan has finished.
+    if(scanPending.has(id)) return;
+    // Just finished this student recently — ignore while they're still
+    // holding the badge up (prevents an accidental immediate re-toggle).
+    if(scanCooldownUntil[id] && now < scanCooldownUntil[id]) return;
 
     const student = data.students.find(s=>s.id===id);
-    const statusEl = document.getElementById('scanStatus');
     if(!student){
       statusEl.className = 'scan-status error';
       statusEl.textContent = 'QR code not recognized.';
       return;
     }
-    lastScanId = id;
-    lastScanTime = now;
+
+    scanPending.add(id);
     const wasIn = statusOf(student.id) === 'in';
     statusEl.className = 'scan-status';
     statusEl.textContent = `${student.name} — ${wasIn ? 'checking out…' : 'checking in…'}`;
-    await toggleStatus(student.id);
-    statusEl.textContent = `${student.name} ${wasIn ? 'checked out' : 'checked in'}. Ready for next student.`;
+    try{
+      await toggleStatus(student.id);
+      statusEl.textContent = `${student.name} ${wasIn ? 'checked out' : 'checked in'}. Move the code away, then scan the next student.`;
+    } finally {
+      scanPending.delete(id);
+      scanCooldownUntil[id] = Date.now() + 5000;
+    }
   }
 
   document.getElementById('openScanBtn').addEventListener('click', openScanner);
