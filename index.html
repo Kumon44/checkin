@@ -1,3 +1,98 @@
+
+Claude finished the response
+
+Designed themed favicon and implemented across application tabs
+Designed themed favicon and implemented across application tabs
+A matching icon is a nice touch, especially since you'll likely have both apps open in different tabs. Let's add a simple checkmark badge — teal for the student app, navy-blue for the employee app, so the tabs are easy to tell apart at a glance.
+
+
+Edited 2 files, ran a command
+Edited 2 files, ran a command
+Let's regenerate the test file and present both:
+
+
+Ran a command, read a file
+Ran a command, read a file
+Both apps now have a small checkmark badge icon for the browser tab — teal for Sign-In Desk, navy-blue for Employee Time Clock, so they're easy to tell apart when you have both open. It's a simple inline icon (no separate image file needed), so nothing extra to upload — just replace index.html and employee.html on GitHub the usual way and the tabs will show the new icons.
+
+
+Sign in desk test
+Code · HTML 
+
+Employee timeclock
+Code · HTML 
+If I don't want my code and password hash showing to the public on github what should I do?
+
+
+Weighing repository privacy against exposing sensitive credentials
+Weighing repository privacy against exposing sensitive credentials
+Good question to ask before this goes further. Let me check GitHub's current policy on this, since it affects the actual options available to you.
+
+
+Weighed repository privacy options and hosting solutions
+Weighed repository privacy options and hosting solutions
+Good instinct to check on this — here's the honest picture:
+
+The good news: the password hash itself isn't really a risk
+That's actually the whole point of using a hash instead of storing your real password — it's a one-way scramble. Even with the hash fully visible, someone can't reverse it back into your password; the only way to "crack" it is to guess passwords and hash each guess to see if it matches. If your password is reasonably long and not something like 1234 or password, that's impractical to brute-force. So the hash being public isn't the main concern.
+
+The bigger concern: your Apps Script URL
+That's more sensitive, since anyone who found it could call your Google Sheet's API directly, bypassing the password screen in the app entirely. This has been true since we built it — worth knowing regardless of what you decide below.
+
+The GitHub-specific answer
+I checked, and on a free personal GitHub account, Pages only works with public repos — private repos need a paid GitHub Pro plan ($4/month) to use Pages.
+
+Your real options
+Do nothing — given the hash point above, this is a reasonable choice for a low-stakes school tool.
+Pay for GitHub Pro ($4/mo) and make the repo private — keeps your code off GitHub's public search/browsing.
+Switch to a different free host — Netlify or Cloudflare Pages both offer free static hosting and can deploy from a private GitHub repo (or you can skip GitHub entirely and just drag-and-drop files). Fully free, no plan change needed.
+One important limitation, no matter which you pick
+Even with a private repo or a different host, the live website's HTML/JavaScript is always visible to anyone who visits the actual site — that's just how browsers work; "View Page Source" or dev tools show it regardless of where it's hosted. A private repo only stops people from stumbling onto your source code repository on GitHub — it doesn't hide anything from someone who deliberately inspects the live page itself.
+
+Want me to walk you through switching to Netlify or Cloudflare Pages? That'd get you both a private source and stay free.
+
+How does the password on the student log in work Does it prompt me everytime I go to that page, or just once in that browser?
+
+
+Thinking about student login password authentication behavior and session persistence
+Thinking about student login password authentication behavior and session persistence
+Here's exactly how it behaves: it uses your browser's session storage, which means —
+
+It asks once per browser session. Enter the password correctly, and it remembers you for as long as that browser tab (or window) stays open.
+Refreshing the page doesn't re-ask. Since the "unlocked" state is remembered for the session, hitting refresh or navigating away and back within the same tab won't prompt again.
+Closing the tab/browser clears it. Next time you open the site in a new tab or after fully closing the browser, it'll ask for the password again.
+It's per-browser, not per-device. If you open the site in a different browser (or a private/incognito window), it'll prompt fresh there too, since session storage doesn't carry over.
+Different computers always prompt. Since this isn't tied to your account or synced anywhere, every separate device/browser needs the password entered once per session.
+So in practice: if you leave the sign-in desk tab open all day on the front-desk computer, you'd only enter it once that morning. If the computer restarts or someone closes the tab, it'll ask again next time it's opened.
+
+If you'd rather it behave differently — say, remembering you for several days even across restarts, or the opposite, asking every single time no matter what — let me know and I can adjust it.
+
+For the QR code generated, can the name be underneath the qr code aligned left?
+
+
+Thinking about positioning QR code labels with left alignment below the code
+Thinking about positioning QR code labels with left alignment below the code
+Let's regenerate the test file:
+
+
+Ran a command, read a file
+Ran a command, read a file
+Done — the QR code, name, and class now all line up flush to the left edge of each printed card instead of being centered. Just replace index.html on GitHub the usual way to see it live.
+
+
+Sign in desk test
+Code · HTML 
+
+Want to be notified when Claude responds?
+
+
+
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+
+
+Sign in desk test · HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -72,7 +167,7 @@
   .count-item .l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#5C7C94;}
   .count-item.in .n{color:var(--in);}
   .count-item.out .n{color:var(--out);}
-
+ 
   .grid{
     display:grid;
     grid-template-columns:340px 1fr;
@@ -82,7 +177,7 @@
   @media (max-width:760px){
     .grid{grid-template-columns:1fr;}
   }
-
+ 
   .card{
     background:var(--panel);
     border-radius:14px;
@@ -97,7 +192,7 @@
     margin:0 0 12px 0;
     color:var(--teal-dark);
   }
-
+ 
   /* roster */
   .add-row{display:flex;gap:6px;margin-bottom:10px;}
   input[type=text], input[type=password], input[type=number], textarea{
@@ -135,7 +230,7 @@
   .manage-area.open{display:flex;}
   .bulk-area.open{display:flex;}
   .bulk-area textarea{min-height:70px;resize:vertical;}
-
+ 
   .search-wrap{margin:14px 0 8px 0;}
   .class-filter-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
   .class-filter-row select{flex:1;min-width:120px;}
@@ -180,7 +275,7 @@
     white-space:nowrap;
     font-weight:600;
   }
-
+ 
   .roster-list{list-style:none;margin:0;padding:0;max-height:520px;overflow:auto;}
   .roster-list li{
     display:flex;
@@ -245,7 +340,7 @@
   }
   .remove-x:hover{color:var(--out);}
   .empty-note{color:var(--muted);font-size:13px;padding:8px 4px;}
-
+ 
   /* detail panel */
   .detail-empty{
     color:var(--muted);
@@ -289,7 +384,7 @@
   .settings-current-value{font-size:11px;color:var(--teal-dark);margin-top:4px;font-family:'IBM Plex Mono',monospace;}
   .settings-checkbox-row label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;}
   .settings-checkbox-row input[type=checkbox]{width:16px;height:16px;}
-
+ 
   .mini-log{list-style:none;margin:0;padding:0;}
   .mini-log li{
     display:flex;
@@ -300,7 +395,7 @@
     font-size:13px;
   }
   .mini-log li:last-child{border-bottom:none;}
-
+ 
   /* stamp */
   .stamp{
     font-family:'IBM Plex Mono',monospace;
@@ -315,7 +410,7 @@
   }
   .stamp.in{color:var(--in);}
   .stamp.out{color:var(--out);}
-
+ 
   /* ledger */
   .ledger{max-height:340px;overflow:auto;}
   .ledger ul{list-style:none;margin:0;padding:0;}
@@ -332,7 +427,7 @@
   .ledger .who{font-weight:600;}
   .ledger .note{color:var(--muted);font-size:12px;display:block;margin-top:2px;}
   .ledger .time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;}
-
+ 
   footer.bottom{
     display:flex;
     justify-content:space-between;
@@ -348,7 +443,7 @@
     color:var(--gold);
     min-height:14px;
   }
-
+ 
   .quicknav{
     position:sticky;
     top:0;
@@ -373,7 +468,7 @@
     text-decoration:none;
   }
   .quicknav a:hover{background:rgba(0,0,0,.1);}
-
+ 
   .back-to-top{
     position:fixed;
     bottom:22px;
@@ -393,7 +488,7 @@
   }
   .back-to-top:hover{background:var(--teal-dark);}
   .back-to-top.show{display:block;}
-
+ 
   .gate-overlay{
     position:fixed;
     inset:0;
@@ -432,7 +527,7 @@
   .gate-card input{margin-bottom:10px;}
   .gate-card button{width:100%;padding:11px;font-size:14px;}
   .gate-error{color:var(--out);font-size:12px;min-height:16px;margin-top:8px;}
-
+ 
   .scan-btn{
     width:100%;
     background:var(--gold);
@@ -449,7 +544,7 @@
     gap:8px;
   }
   .scan-btn:hover{background:#B58730;}
-
+ 
   .scan-overlay{
     position:fixed;inset:0;background:rgba(10,15,13,.92);
     display:none;align-items:center;justify-content:center;
@@ -485,10 +580,10 @@
   .scan-status.error{color:var(--out);}
   .scan-actions{display:flex;gap:8px;}
   .scan-actions button{flex:1;}
-
+ 
   .qr-print-area{display:none;}
   .qr-print-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
-  .qr-print-item{text-align:center;font-family:sans-serif;break-inside:avoid;padding:10px;}
+  .qr-print-item{text-align:left;font-family:sans-serif;break-inside:avoid;padding:10px;}
   .qr-print-item .qr-name{margin-top:6px;font-weight:600;font-size:13px;}
   .qr-print-item .qr-class{font-size:11px;color:#666;}
   @media print{
@@ -496,7 +591,7 @@
     .qr-print-area, .qr-print-area *{visibility:visible;}
     .qr-print-area{display:block;position:absolute;top:0;left:0;width:100%;}
   }
-
+ 
   .log-filter-row{
     display:flex;
     gap:8px;
@@ -541,21 +636,21 @@
       <a href="employee.html" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--teal-dark);text-decoration:none;border:1px solid rgba(0,0,0,.15);padding:6px 12px;border-radius:20px;white-space:nowrap;">Employee Time Clock &rarr;</a>
     </div>
   </header>
-
+ 
   <div class="quicknav">
     <a href="#rosterCard">Roster</a>
     <a href="#checkedInCard">Checked In</a>
     <a href="#detailCard">Selected Student</a>
     <a href="#ledgerCard">Activity Log</a>
   </div>
-
+ 
   <div class="grid">
     <!-- Roster -->
     <div class="card" id="rosterCard">
       <h2>Roster</h2>
-
+ 
       <button class="scan-btn" id="openScanBtn">&#128247; Scan QR to Check In / Out</button>
-
+ 
       <div class="search-wrap">
         <input type="text" id="search" placeholder="Search roster...">
       </div>
@@ -563,10 +658,10 @@
         <select id="classFilter"><option value="">All Classes</option></select>
         <button class="link-btn" id="renameClassBtn" style="display:none;">Rename this class</button>
       </div>
-
+ 
       <ul class="roster-list" id="rosterList"></ul>
       <div class="empty-note" id="rosterEmpty" style="display:none;">No students yet — add your first one below.</div>
-
+ 
       <button class="link-btn" id="manageToggle" style="margin-top:14px;">+ Add / manage students</button>
       <div class="manage-area" id="manageArea">
         <datalist id="classOptions"></datalist>
@@ -584,7 +679,7 @@
         <button class="btn-ghost" id="printQRBtn" style="width:100%;margin-top:8px;">&#128196; Print QR Codes (current filter)</button>
       </div>
     </div>
-
+ 
     <!-- Detail + Ledger -->
     <div style="display:flex;flex-direction:column;gap:20px;">
       <div class="card" id="checkedInCard">
@@ -597,12 +692,12 @@
         </div>
         <div class="ledger" id="checkedInList"></div>
       </div>
-
+ 
       <div class="card" id="detailCard">
         <h2>Selected Student</h2>
         <div id="detailBody"></div>
       </div>
-
+ 
       <div class="card" id="ledgerCard">
         <h2>Activity Log</h2>
         <div class="log-filter-row">
@@ -614,7 +709,7 @@
       </div>
     </div>
   </div>
-
+ 
   <footer class="bottom">
     <span class="status-msg" id="statusMsg"></span>
     <span>
@@ -624,7 +719,7 @@
   </footer>
 </div>
 <button class="back-to-top" id="backToTop">&uarr; Top</button>
-
+ 
 <div class="gate-overlay" id="flagAlertOverlay" style="display:none;background:rgba(181,80,44,.55);">
   <div class="gate-card" style="max-width:380px;">
     <span class="kicker" style="color:var(--out);">Attention Needed</span>
@@ -633,7 +728,7 @@
     <button class="btn-teal" id="flagAlertOk">OK</button>
   </div>
 </div>
-
+ 
 <div class="scan-overlay" id="scanOverlay">
   <div class="scan-card">
     <h3 style="font-family:'Space Grotesk',sans-serif;margin:0 0 12px 0;">Scan Student QR Code</h3>
@@ -648,9 +743,9 @@
     </div>
   </div>
 </div>
-
+ 
 <div class="qr-print-area" id="qrPrintArea"></div>
-
+ 
 <script>
 (function(){
   // ====================================================================
@@ -658,30 +753,30 @@
   // and paste it below. Leave as-is (no PASTE_YOUR text) to disable the
   // gate entirely.
   // ====================================================================
-  const PASSWORD_HASH = '7123d367e354baefc7131376b2e3bbab1055dd45ba920b9f1ee2047cb1b72efc';
+  const PASSWORD_HASH = 'PASTE_YOUR_PASSWORD_HASH_HERE';
   const SESSION_KEY = 'signInDeskUnlocked';
-
+ 
   async function sha256Hex(str){
     const enc = new TextEncoder().encode(str);
     const buf = await crypto.subtle.digest('SHA-256', enc);
     return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
   }
-
+ 
   function sessionUnlocked(){
     try{ return sessionStorage.getItem(SESSION_KEY) === '1'; }catch(e){ return false; }
   }
   function markUnlocked(){
     try{ sessionStorage.setItem(SESSION_KEY, '1'); }catch(e){ /* ignore */ }
   }
-
+ 
   function unlockApp(){
     document.getElementById('gateOverlay').style.display = 'none';
     document.getElementById('appRoot').style.display = 'flex';
     load();
   }
-
+ 
   const gateEnabled = !!PASSWORD_HASH && !PASSWORD_HASH.includes('PASTE_YOUR');
-
+ 
   if(!gateEnabled || sessionUnlocked()){
     unlockApp();
   }else{
@@ -701,36 +796,36 @@
     });
     document.getElementById('gatePassword').focus();
   }
-
-
+ 
+ 
   let data = { students: [], events: [], settings: {} };
   let selectedId = null;
-
+ 
   // ====================================================================
   // 1) Deploy the companion Google Apps Script (see DEPLOYMENT.md)
   // 2) Paste the Web App URL it gives you below, between the quotes
   // ====================================================================
   const API_URL = 'https://script.google.com/macros/s/AKfycbxrWo3nht962zuXiWfmyK53yCcUJSLm3Mv5tK5V28SiiO8d7MTxyCg3qucMm6UR7w6q/exec';
-
+ 
   const rosterList = document.getElementById('rosterList');
   const rosterEmpty = document.getElementById('rosterEmpty');
   const detailBody = document.getElementById('detailBody');
   const ledgerEl = document.getElementById('ledger');
   const searchInput = document.getElementById('search');
   const statusMsg = document.getElementById('statusMsg');
-
+ 
   document.getElementById('today').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
-
+ 
   function fmtTime(ts){
     return new Date(ts).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
   }
-
+ 
   function statusOf(studentId){
     const evs = data.events.filter(e=>e.studentId===studentId);
     if(evs.length===0) return 'out';
     return evs[evs.length-1].type;
   }
-
+ 
   let flashTimer;
   function flash(msg, persist){
     statusMsg.textContent = msg;
@@ -739,13 +834,13 @@
       flashTimer = setTimeout(()=>{ statusMsg.textContent=''; }, 3500);
     }
   }
-
+ 
   async function apiGet(){
     const res = await fetch(API_URL);
     if(!res.ok) throw new Error('Request failed');
     return res.json();
   }
-
+ 
   async function apiPost(payload){
     const res = await fetch(API_URL, {
       method: 'POST',
@@ -755,7 +850,7 @@
     if(!res.ok) throw new Error('Request failed');
     return res.json();
   }
-
+ 
   async function load(quiet){
     if(API_URL.includes('PASTE_YOUR')){
       flash('Not connected yet — set API_URL at the top of the script. See DEPLOYMENT.md.', true);
@@ -774,13 +869,13 @@
     }
     render();
   }
-
+ 
   // Background refresh, so changes made on other computers show up here too
   setInterval(()=>load(true), 15000);
   // Re-render on its own too, so "checked in for too long" flags update live
   // even between syncs
   setInterval(()=>renderCheckedIn(), 30000);
-
+ 
   async function addStudent(name, className){
     name = name.trim();
     if(!name) return;
@@ -797,7 +892,7 @@
       flash('Could not save — try again.');
     }
   }
-
+ 
   document.getElementById('addBtn').addEventListener('click', ()=>{
     const input = document.getElementById('newName');
     const classInput = document.getElementById('newClass');
@@ -809,13 +904,13 @@
   document.getElementById('newName').addEventListener('keydown', (e)=>{
     if(e.key==='Enter'){ document.getElementById('addBtn').click(); }
   });
-
+ 
   document.getElementById('manageToggle').addEventListener('click', ()=>{
     const area = document.getElementById('manageArea');
     const nowOpen = area.classList.toggle('open');
     document.getElementById('manageToggle').textContent = nowOpen ? '– Add / manage students' : '+ Add / manage students';
   });
-
+ 
   document.getElementById('bulkToggle').addEventListener('click', ()=>{
     document.getElementById('bulkArea').classList.toggle('open');
   });
@@ -841,29 +936,29 @@
     classInput.value = '';
     document.getElementById('bulkArea').classList.remove('open');
   });
-
+ 
   function getClasses(){
     return Array.from(new Set(data.students.map(s=>s.class).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
   }
-
+ 
   function populateClassUI(){
     const classes = getClasses();
     const datalist = document.getElementById('classOptions');
     datalist.innerHTML = classes.map(c=>`<option value="${escapeHtml(c)}"></option>`).join('');
-
+ 
     const filter = document.getElementById('classFilter');
     const prev = filter.value;
     filter.innerHTML = '<option value="">All Classes</option>' + classes.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
     if(classes.includes(prev)) filter.value = prev;
-
+ 
     document.getElementById('renameClassBtn').style.display = filter.value ? 'inline' : 'none';
-
+ 
     const checkedInFilter = document.getElementById('checkedInClassFilter');
     const prevCheckedIn = checkedInFilter.value;
     checkedInFilter.innerHTML = '<option value="">All Classes</option>' + classes.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
     if(classes.includes(prevCheckedIn)) checkedInFilter.value = prevCheckedIn;
   }
-
+ 
   function debounce(fn, delay){
     let t;
     return function(...args){
@@ -871,15 +966,15 @@
       t = setTimeout(()=>fn.apply(this, args), delay);
     };
   }
-
+ 
   document.getElementById('classFilter').addEventListener('change', ()=>{
     document.getElementById('renameClassBtn').style.display = document.getElementById('classFilter').value ? 'inline' : 'none';
     renderRoster();
   });
-
+ 
   document.getElementById('checkedInClassFilter').addEventListener('change', renderCheckedIn);
   document.getElementById('checkedInSearch').addEventListener('input', debounce(renderCheckedIn, 150));
-
+ 
   document.getElementById('renameClassBtn').addEventListener('click', async ()=>{
     const oldName = document.getElementById('classFilter').value;
     if(!oldName) return;
@@ -897,12 +992,12 @@
       flash('Could not rename — try again.');
     }
   });
-
+ 
   searchInput.addEventListener('input', debounce(renderRoster, 150));
-
+ 
   document.getElementById('logSearch').addEventListener('input', debounce(renderLedger, 150));
   document.getElementById('logDate').addEventListener('change', renderLedger);
-
+ 
   const backToTop = document.getElementById('backToTop');
   window.addEventListener('scroll', ()=>{
     backToTop.classList.toggle('show', window.scrollY > 300);
@@ -910,9 +1005,9 @@
   backToTop.addEventListener('click', ()=>{
     window.scrollTo({ top:0, behavior:'smooth' });
   });
-
+ 
   document.getElementById('refreshBtn').addEventListener('click', ()=>load(false));
-
+ 
   document.getElementById('resetAll').addEventListener('click', async ()=>{
     if(!confirm('Clear all students and log entries? This cannot be undone.')) return;
     flash('Clearing…', true);
@@ -926,7 +1021,7 @@
       flash('Could not clear — try again.');
     }
   });
-
+ 
   async function removeStudent(id){
     if(!confirm('Remove this student from the roster? Their log entries will be kept.')) return;
     if(selectedId===id) selectedId = null;
@@ -940,17 +1035,17 @@
       flash('Could not remove — try again.');
     }
   }
-
+ 
   function selectStudent(id){
     selectedId = id;
     render();
   }
-
+ 
   function deselectStudent(){
     selectedId = null;
     render();
   }
-
+ 
   async function toggleStatus(id){
     const current = statusOf(id);
     const next = current==='in' ? 'out' : 'in';
@@ -977,7 +1072,7 @@
       flash('Could not save — try again.');
     }
   }
-
+ 
   function showFlagAlert(student){
     document.getElementById('flagAlertName').textContent = student.name;
     document.getElementById('flagAlertMessage').textContent = student.flagMessage || 'Please see the instructor.';
@@ -987,7 +1082,7 @@
   document.getElementById('flagAlertOk').addEventListener('click', ()=>{
     document.getElementById('flagAlertOverlay').style.display = 'none';
   });
-
+ 
   // ---- QR scanning ----
   const QR_PREFIX = 'SIGNIN:';
   let scanStream = null;
@@ -997,7 +1092,7 @@
   const scanCooldownUntil = {};       // id -> timestamp until which re-scans are ignored
   const qrCanvas = document.createElement('canvas');
   const qrCtx = qrCanvas.getContext('2d', { willReadFrequently: true });
-
+ 
   async function openScanner(){
     const overlay = document.getElementById('scanOverlay');
     const statusEl = document.getElementById('scanStatus');
@@ -1006,7 +1101,7 @@
     statusEl.textContent = 'Point a student\'s QR code at the camera.';
     await startCamera();
   }
-
+ 
   async function startCamera(){
     const video = document.getElementById('qrVideo');
     const statusEl = document.getElementById('scanStatus');
@@ -1024,7 +1119,7 @@
       statusEl.textContent = 'Could not access the camera — check permissions and try again.';
     }
   }
-
+ 
   function stopCamera(){
     scanning = false;
     if(scanStream){
@@ -1032,12 +1127,12 @@
       scanStream = null;
     }
   }
-
+ 
   function closeScanner(){
     stopCamera();
     document.getElementById('scanOverlay').classList.remove('show');
   }
-
+ 
   function scanTick(){
     if(!scanning) return;
     const video = document.getElementById('qrVideo');
@@ -1053,27 +1148,27 @@
     }
     requestAnimationFrame(scanTick);
   }
-
+ 
   async function handleScanResult(text){
     if(!text.startsWith(QR_PREFIX)) return;
     const id = text.slice(QR_PREFIX.length);
     const now = Date.now();
     const statusEl = document.getElementById('scanStatus');
-
+ 
     // Already mid-toggle for this student — ignore extra frames that
     // detect the same code before the first scan has finished.
     if(scanPending.has(id)) return;
     // Just finished this student recently — ignore while they're still
     // holding the badge up (prevents an accidental immediate re-toggle).
     if(scanCooldownUntil[id] && now < scanCooldownUntil[id]) return;
-
+ 
     const student = data.students.find(s=>s.id===id);
     if(!student){
       statusEl.className = 'scan-status error';
       statusEl.textContent = 'QR code not recognized.';
       return;
     }
-
+ 
     scanPending.add(id);
     const wasIn = statusOf(student.id) === 'in';
     statusEl.className = 'scan-status';
@@ -1086,29 +1181,29 @@
       scanCooldownUntil[id] = Date.now() + 5000;
     }
   }
-
+ 
   document.getElementById('openScanBtn').addEventListener('click', openScanner);
   document.getElementById('closeScanBtn').addEventListener('click', closeScanner);
   document.getElementById('switchCameraBtn').addEventListener('click', ()=>{
     scanFacingMode = (scanFacingMode === 'environment') ? 'user' : 'environment';
     startCamera();
   });
-
+ 
   // ---- QR printing ----
   document.getElementById('printQRBtn').addEventListener('click', ()=>{
     const classFilter = document.getElementById('classFilter').value;
     const students = data.students
       .filter(s=>!classFilter || s.class===classFilter)
       .sort((a,b)=>a.name.localeCompare(b.name));
-
+ 
     if(students.length===0){ flash('No students to print for this filter.'); return; }
-
+ 
     const container = document.getElementById('qrPrintArea');
     container.innerHTML = '';
     const grid = document.createElement('div');
     grid.className = 'qr-print-grid';
     container.appendChild(grid);
-
+ 
     students.forEach(s=>{
       const item = document.createElement('div');
       item.className = 'qr-print-item';
@@ -1127,10 +1222,10 @@
       grid.appendChild(item);
       new QRCode(qrDiv, { text: QR_PREFIX + s.id, width: 120, height: 120 });
     });
-
+ 
     setTimeout(()=>window.print(), 250);
   });
-
+ 
   // Returns the alert threshold in minutes for a student, or null if they
   // don't have one set — in which case they're never flagged as overdue.
   function getAlertThreshold(student){
@@ -1138,7 +1233,7 @@
       ? Number(student.alertMinutes)
       : null;
   }
-
+ 
   function renderRoster(){
     const q = searchInput.value.trim().toLowerCase();
     const classFilter = document.getElementById('classFilter').value;
@@ -1146,10 +1241,10 @@
       .filter(s=>s.name.toLowerCase().includes(q))
       .filter(s=>!classFilter || s.class===classFilter)
       .sort((a,b)=>a.name.localeCompare(b.name));
-
+ 
     rosterList.innerHTML = '';
     rosterEmpty.style.display = data.students.length===0 ? 'block' : 'none';
-
+ 
     students.forEach(s=>{
       const st = statusOf(s.id);
       const li = document.createElement('li');
@@ -1174,7 +1269,7 @@
       rosterList.appendChild(li);
     });
   }
-
+ 
   function renderDetail(){
     if(!selectedId || !data.students.find(s=>s.id===selectedId)){
       detailBody.innerHTML = '<div class="detail-empty">Select a student from the roster to check them in or out.</div>';
@@ -1184,12 +1279,12 @@
     const st = statusOf(student.id);
     const nextLabel = st==='in' ? 'Check Out' : 'Check In';
     const nextClass = st==='in' ? 'to-out' : 'to-in';
-
+ 
     const history = data.events.filter(e=>e.studentId===student.id).slice().reverse().slice(0,8);
     const historyHtml = history.length
       ? history.map(e=>`<li><span class="stamp ${e.type}">${e.type==='in'?'IN':'OUT'}</span> &nbsp;${fmtTime(e.timestamp)}${e.note ? ' — '+escapeHtml(e.note) : ''}</li>`).join('')
       : '<li style="color:var(--muted);border:none;">No activity yet.</li>';
-
+ 
     detailBody.innerHTML = `
       <div class="detail-head">
         <h3></h3>
@@ -1202,7 +1297,7 @@
       <div class="note-row">
         <input type="text" id="noteInput" placeholder="Optional note (e.g. picked up by parent)">
       </div>
-
+ 
       <h2 style="margin-top:18px;">Student Settings</h2>
       <div class="settings-field">
         <label for="studentAlertInput">Alert after this many minutes checked in</label>
@@ -1216,10 +1311,10 @@
         <input type="text" id="studentFlagMessage" placeholder="Message to show (e.g. See instructor)" value="${escapeHtml(student.flagMessage || '')}">
       </div>
       <button class="btn-ghost" id="saveStudentSettingsBtn" style="width:100%;">Save Settings</button>
-
+ 
       <h2 style="margin-top:18px;">Recent Activity</h2>
       <ul class="mini-log">${historyHtml}</ul>
-
+ 
       <button class="btn-ghost danger-btn" id="removeStudentBtn" style="width:100%;margin-top:18px;">Remove This Student From Roster</button>
     `;
     detailBody.querySelector('h3').textContent = student.name;
@@ -1260,11 +1355,11 @@
       }
     });
   }
-
+ 
   function dateKey(ts){
     return new Date(ts).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
   }
-
+ 
   function populateDateFilter(){
     const sel = document.getElementById('logDate');
     const prevValue = sel.value;
@@ -1276,14 +1371,14 @@
     sel.innerHTML = '<option value="">All dates</option>' + dates.map(d=>`<option value="${d}">${d}</option>`).join('');
     if(dates.includes(prevValue)) sel.value = prevValue;
   }
-
+ 
   function renderLedger(){
     populateDateFilter();
     const q = document.getElementById('logSearch').value.trim().toLowerCase();
     const dateFilter = document.getElementById('logDate').value;
-
+ 
     let events = data.events.slice().sort((a,b)=>b.timestamp-a.timestamp);
-
+ 
     if(dateFilter){
       events = events.filter(e=>dateKey(e.timestamp)===dateFilter);
     }
@@ -1295,12 +1390,12 @@
         return name.includes(q) || note.includes(q);
       });
     }
-
+ 
     const totalCount = events.length;
     const shown = events.slice(0,150);
     document.getElementById('logCount').textContent =
       totalCount===0 ? '' : `${totalCount} entr${totalCount===1?'y':'ies'}${totalCount>150 ? ' (showing most recent 150)':''}`;
-
+ 
     if(shown.length===0){
       ledgerEl.innerHTML = `<div class="empty-note">${data.events.length===0 ? 'No check-ins or check-outs recorded yet.' : 'No matching entries.'}</div>`;
       return;
@@ -1324,7 +1419,7 @@
       if(noteEl) noteEl.textContent = ' — ' + e.note;
     });
   }
-
+ 
   function renderCheckedIn(){
     const checkedInList = document.getElementById('checkedInList');
     const classFilter = document.getElementById('checkedInClassFilter').value;
@@ -1344,7 +1439,7 @@
         return { student: s, since, minutesIn, overdue };
       })
       .sort((a,b)=>a.student.name.localeCompare(b.student.name));
-
+ 
     if(inStudents.length===0){
       const anyoneInAtAll = data.students.some(s=>statusOf(s.id)==='in');
       const msg = anyoneInAtAll ? 'No matching students.' : 'No one is currently checked in.';
@@ -1370,20 +1465,20 @@
       btn.addEventListener('click', ()=>toggleStatus(btn.dataset.id));
     });
   }
-
+ 
   function renderCounts(){
     const inCount = data.students.filter(s=>statusOf(s.id)==='in').length;
     document.getElementById('countIn').textContent = inCount;
     document.getElementById('countOut').textContent = data.students.length - inCount;
     document.getElementById('countTotal').textContent = data.students.length;
   }
-
+ 
   function escapeHtml(str){
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
   }
-
+ 
   function render(){
     populateClassUI();
     renderRoster();
@@ -1392,8 +1487,9 @@
     renderLedger();
     renderCounts();
   }
-
+ 
 })();
 </script>
 </body>
 </html>
+ 
