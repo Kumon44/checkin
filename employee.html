@@ -498,25 +498,37 @@
   modalOverlay.addEventListener('click', (e)=>{ if(e.target===modalOverlay) closeModal(); });
   modalPassword.addEventListener('keydown', (e)=>{ if(e.key==='Enter') document.getElementById('modalSubmit').click(); });
 
+  let clockSubmitting = false;
+
   document.getElementById('modalSubmit').addEventListener('click', async ()=>{
-    if(!pendingClock) return;
+    if(!pendingClock || clockSubmitting) return;
     const password = modalPassword.value;
     if(!password){ modalError.textContent = 'Password required.'; return; }
     modalError.textContent = '';
+    clockSubmitting = true;
+    const submitBtn = document.getElementById('modalSubmit');
+    submitBtn.disabled = true;
     flash('Checking…', true);
     try{
       const res = await apiPost({ action:'clockAction', employeeId: pendingClock.employeeId, type: pendingClock.nextType, password });
       if(res && res.error){
         modalError.textContent = res.error;
         flash('');
+        if(res.alreadyInState) await load(true);
         return;
       }
+      const timestamp = (res && res.timestamp) ? res.timestamp : Date.now();
+      const eventId = (res && res.id) ? res.id : ('local-' + timestamp);
+      data.events.push({ id: eventId, employeeId: pendingClock.employeeId, type: pendingClock.nextType, timestamp });
       closeModal();
-      await load(true);
+      render();
       flash('');
     }catch(e){
       modalError.textContent = 'Network error — try again.';
       flash('');
+    }finally{
+      clockSubmitting = false;
+      submitBtn.disabled = false;
     }
   });
 

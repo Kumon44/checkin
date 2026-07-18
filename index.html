@@ -956,7 +956,14 @@
     render();
   }
 
+  const toggleInFlight = new Set();
+
   async function toggleStatus(id){
+    // Prevent a double-tap or a second click while the first request is
+    // still in flight from firing the same toggle twice.
+    if(toggleInFlight.has(id)) return;
+    toggleInFlight.add(id);
+
     const current = statusOf(id);
     const next = current==='in' ? 'out' : 'in';
     let note = '';
@@ -967,6 +974,11 @@
     flash('Saving…', true);
     try{
       const res = await apiPost({ action: 'addEvent', studentId: id, type: next, note });
+      if(res && res.error){
+        flash(res.error);
+        if(res.alreadyInState) await load(true);
+        return false;
+      }
       const timestamp = (res && res.timestamp) ? res.timestamp : Date.now();
       const eventId = (res && res.id) ? res.id : ('local-' + timestamp);
       data.events.push({ id: eventId, studentId: id, type: next, timestamp, note });
@@ -978,8 +990,12 @@
           showFlagAlert(student);
         }
       }
+      return true;
     }catch(e){
       flash('Could not save — try again.');
+      return false;
+    }finally{
+      toggleInFlight.delete(id);
     }
   }
 
@@ -1084,8 +1100,13 @@
     statusEl.className = 'scan-status';
     statusEl.textContent = `${student.name} — ${wasIn ? 'checking out…' : 'checking in…'}`;
     try{
-      await toggleStatus(student.id);
-      statusEl.textContent = `${student.name} ${wasIn ? 'checked out' : 'checked in'}. Move the code away, then scan the next student.`;
+      const ok = await toggleStatus(student.id);
+      if(ok){
+        statusEl.textContent = `${student.name} ${wasIn ? 'checked out' : 'checked in'}. Move the code away, then scan the next student.`;
+      }else{
+        statusEl.className = 'scan-status error';
+        statusEl.textContent = `Could not update ${student.name} — try scanning again.`;
+      }
     } finally {
       scanPending.delete(id);
       scanCooldownUntil[id] = Date.now() + 5000;
