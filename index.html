@@ -492,7 +492,7 @@
   .qr-print-item .qr-name{margin-top:6px;font-weight:600;font-size:13px;}
   .qr-print-item .qr-class{font-size:11px;color:#666;}
   @media print{
-    #appRoot, #gateOverlay, #flagAlertOverlay, #scanOverlay, #backToTop{
+    #appRoot, #gateOverlay, #flagAlertOverlay, #scanOverlay, #backToTop, #passwordChangeOverlay{
       display:none !important;
     }
     .qr-print-area{
@@ -624,6 +624,7 @@
     <span class="status-msg" id="statusMsg"></span>
     <span>
       <button id="refreshBtn">Refresh</button>
+      <button id="changeSitePasswordBtn">Change Site Password</button>
       <button id="resetAll">Clear all data</button>
     </span>
   </footer>
@@ -654,23 +655,63 @@
   </div>
 </div>
 
+<div class="scan-overlay" id="passwordChangeOverlay">
+  <div class="gate-card" style="max-width:360px;">
+    <span class="kicker">Sign-In Desk</span>
+    <h2>Change Site Password</h2>
+    <div id="pwChangeCurrentField" style="margin-bottom:8px;">
+      <input type="password" id="pwChangeCurrent" placeholder="Current password">
+    </div>
+    <input type="password" id="pwChangeNew" placeholder="New password" style="margin-bottom:8px;">
+    <input type="password" id="pwChangeConfirm" placeholder="Confirm new password">
+    <div class="gate-error" id="pwChangeError"></div>
+    <div class="scan-actions" style="margin-top:14px;">
+      <button class="btn-ghost" id="pwChangeCancel">Cancel</button>
+      <button class="btn-teal" id="pwChangeSave">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="qr-print-area" id="qrPrintArea"></div>
 
 <script>
 (function(){
+  let data = { students: [], events: [], settings: {} };
+  let selectedId = null;
+
   // ====================================================================
-  // Site password gate — generate a hash with generate-password-hash.html
-  // and paste it below. Leave as-is (no PASTE_YOUR text) to disable the
-  // gate entirely.
+  // Paste the Web App URL from your Apps Script deployment below
   // ====================================================================
-  const PASSWORD_HASH = '7123d367e354baefc7131376b2e3bbab1055dd45ba920b9f1ee2047cb1b72efc';
-  const SESSION_KEY = 'signInDeskUnlocked';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxrWo3nht962zuXiWfmyK53yCcUJSLm3Mv5tK5V28SiiO8d7MTxyCg3qucMm6UR7w6q/exec';
+
+  async function apiGet(){
+    const res = await fetch(API_URL);
+    if(!res.ok) throw new Error('Request failed');
+    return res.json();
+  }
+
+  async function apiPost(payload){
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error('Request failed');
+    return res.json();
+  }
 
   async function sha256Hex(str){
     const enc = new TextEncoder().encode(str);
     const buf = await crypto.subtle.digest('SHA-256', enc);
     return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
   }
+
+  // ---- site password gate ----
+  // The password itself now lives in your Google Sheet (Settings tab,
+  // "sitePasswordHash"), not in this file — see DEPLOYMENT.md. Change it
+  // any time from the "Change Site Password" link in the footer once
+  // you're in, or by editing that Sheet cell directly.
+  const SESSION_KEY = 'signInDeskUnlocked';
 
   function sessionUnlocked(){
     try{ return sessionStorage.getItem(SESSION_KEY) === '1'; }catch(e){ return false; }
@@ -682,40 +723,53 @@
   function unlockApp(){
     document.getElementById('gateOverlay').style.display = 'none';
     document.getElementById('appRoot').style.display = 'flex';
-    load();
+    render();
   }
 
-  const gateEnabled = !!PASSWORD_HASH && !PASSWORD_HASH.includes('PASTE_YOUR');
+  async function initGate(){
+    if(API_URL.includes('PASTE_YOUR')){
+      document.getElementById('gateError').textContent = 'App not connected yet — set API_URL in the script.';
+      return;
+    }
+    try{
+      const fresh = await apiGet();
+      data = { students: fresh.students||[], events: fresh.events||[], settings: fresh.settings||{} };
+    }catch(e){
+      document.getElementById('gateError').textContent = 'Could not reach the server. Check your connection and reload.';
+      return;
+    }
+    const gateEnabled = !!data.settings.sitePasswordSet;
+    if(!gateEnabled || sessionUnlocked()){
+      unlockApp();
+    }else{
+      document.getElementById('gateSubmit').addEventListener('click', handleGateSubmit);
+      document.getElementById('gatePassword').addEventListener('keydown', (e)=>{
+        if(e.key==='Enter') document.getElementById('gateSubmit').click();
+      });
+      document.getElementById('gatePassword').focus();
+    }
+  }
 
-  if(!gateEnabled || sessionUnlocked()){
-    unlockApp();
-  }else{
-    document.getElementById('gateSubmit').addEventListener('click', async ()=>{
-      const val = document.getElementById('gatePassword').value;
+  async function handleGateSubmit(){
+    const val = document.getElementById('gatePassword').value;
+    const errorEl = document.getElementById('gateError');
+    errorEl.textContent = 'Checking…';
+    try{
       const hash = await sha256Hex(val);
-      if(hash === PASSWORD_HASH){
+      const res = await apiPost({ action:'verifySitePassword', passwordHash: hash });
+      if(res && res.ok){
         markUnlocked();
         unlockApp();
       }else{
-        document.getElementById('gateError').textContent = 'Incorrect password.';
+        errorEl.textContent = 'Incorrect password.';
         document.getElementById('gatePassword').value = '';
       }
-    });
-    document.getElementById('gatePassword').addEventListener('keydown', (e)=>{
-      if(e.key==='Enter') document.getElementById('gateSubmit').click();
-    });
-    document.getElementById('gatePassword').focus();
+    }catch(e){
+      errorEl.textContent = 'Network error — try again.';
+    }
   }
 
-
-  let data = { students: [], events: [], settings: {} };
-  let selectedId = null;
-
-  // ====================================================================
-  // 1) Deploy the companion Google Apps Script (see DEPLOYMENT.md)
-  // 2) Paste the Web App URL it gives you below, between the quotes
-  // ====================================================================
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxrWo3nht962zuXiWfmyK53yCcUJSLm3Mv5tK5V28SiiO8d7MTxyCg3qucMm6UR7w6q/exec';
+  initGate();
 
   const rosterList = document.getElementById('rosterList');
   const rosterEmpty = document.getElementById('rosterEmpty');
@@ -743,22 +797,6 @@
     if(!persist){
       flashTimer = setTimeout(()=>{ statusMsg.textContent=''; }, 3500);
     }
-  }
-
-  async function apiGet(){
-    const res = await fetch(API_URL);
-    if(!res.ok) throw new Error('Request failed');
-    return res.json();
-  }
-
-  async function apiPost(payload){
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
-    if(!res.ok) throw new Error('Request failed');
-    return res.json();
   }
 
   async function load(quiet){
@@ -917,6 +955,53 @@
   });
 
   document.getElementById('refreshBtn').addEventListener('click', ()=>load(false));
+
+  // ---- change site password ----
+  document.getElementById('changeSitePasswordBtn').addEventListener('click', ()=>{
+    const overlay = document.getElementById('passwordChangeOverlay');
+    document.getElementById('pwChangeCurrent').value = '';
+    document.getElementById('pwChangeNew').value = '';
+    document.getElementById('pwChangeConfirm').value = '';
+    document.getElementById('pwChangeError').textContent = '';
+    // If no password is set yet, there's nothing to confirm, so hide that field.
+    document.getElementById('pwChangeCurrentField').style.display = data.settings.sitePasswordSet ? 'block' : 'none';
+    overlay.classList.add('show');
+  });
+  document.getElementById('pwChangeCancel').addEventListener('click', ()=>{
+    document.getElementById('passwordChangeOverlay').classList.remove('show');
+  });
+  document.getElementById('passwordChangeOverlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'passwordChangeOverlay') e.target.classList.remove('show');
+  });
+  document.getElementById('pwChangeConfirm').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter') document.getElementById('pwChangeSave').click();
+  });
+  document.getElementById('pwChangeSave').addEventListener('click', async ()=>{
+    const current = document.getElementById('pwChangeCurrent').value;
+    const next = document.getElementById('pwChangeNew').value;
+    const confirm = document.getElementById('pwChangeConfirm').value;
+    const errorEl = document.getElementById('pwChangeError');
+    if(!next){ errorEl.textContent = 'Enter a new password.'; return; }
+    if(next !== confirm){ errorEl.textContent = 'New passwords don\'t match.'; return; }
+    errorEl.textContent = '';
+    flash('Saving…', true);
+    try{
+      const currentHash = data.settings.sitePasswordSet ? await sha256Hex(current) : '';
+      const newHash = await sha256Hex(next);
+      const res = await apiPost({ action:'changeSitePassword', currentHash, newHash });
+      if(res && res.error){
+        errorEl.textContent = res.error;
+        flash('');
+        return;
+      }
+      data.settings.sitePasswordSet = true;
+      document.getElementById('passwordChangeOverlay').classList.remove('show');
+      flash('Site password updated.');
+    }catch(e){
+      errorEl.textContent = 'Network error — try again.';
+      flash('');
+    }
+  });
 
   document.getElementById('resetAll').addEventListener('click', async ()=>{
     if(!confirm('Clear all students and log entries? This cannot be undone.')) return;

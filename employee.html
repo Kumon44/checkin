@@ -320,6 +320,21 @@
           </div>
           <div class="modal-error" id="passwordChangeError"></div>
 
+          <h3 class="subhead">Change Admin Password</h3>
+          <div class="export-row">
+            <div class="export-field">
+              <label for="adminPwChangeNew">New admin password</label>
+              <input type="password" id="adminPwChangeNew" placeholder="New admin password">
+            </div>
+            <div class="export-field">
+              <label for="adminPwChangeConfirm">Confirm</label>
+              <input type="password" id="adminPwChangeConfirm" placeholder="Confirm">
+            </div>
+            <button class="btn-teal" id="adminPwChangeBtn">Update Admin Password</button>
+          </div>
+          <div class="modal-error" id="adminPwChangeError"></div>
+          <div class="export-note">You're already verified as admin this session, so no need to re-enter the current password — just set the new one.</div>
+
         </div>
       </div>
     </div>
@@ -385,7 +400,7 @@
   let data = { employees: [], events: [] };
   let pendingClock = null; // { employeeId, name, nextType }
   let editMode = false;
-  let adminPassword = null;
+  let adminPasswordHash = null;
   let editingEventId = null;
 
   const rosterList = document.getElementById('rosterList');
@@ -425,6 +440,12 @@
     });
     if(!res.ok) throw new Error('Request failed');
     return res.json();
+  }
+
+  async function sha256Hex(str){
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
   }
 
   async function load(quiet){
@@ -571,7 +592,7 @@
   editToggleBtn.addEventListener('click', ()=>{
     if(editMode){
       editMode = false;
-      adminPassword = null;
+      adminPasswordHash = null;
       editToggleBtn.textContent = 'Unlock';
       editToggleBtn.classList.remove('active');
       lockedNotice.style.display = 'block';
@@ -595,13 +616,14 @@
     if(!val){ adminModalError.textContent = 'Password required.'; return; }
     flash('Checking…', true);
     try{
-      const res = await apiPost({ action:'verifyAdmin', password: val });
+      const hash = await sha256Hex(val);
+      const res = await apiPost({ action:'verifyAdmin', passwordHash: hash });
       if(res && res.error){
         adminModalError.textContent = res.error;
         flash('');
         return;
       }
-      adminPassword = val;
+      adminPasswordHash = hash;
       editMode = true;
       adminModalOverlay.classList.remove('show');
       editToggleBtn.textContent = 'Exit Edit Mode';
@@ -643,7 +665,7 @@
     if(!val){ editEntryError.textContent = 'Pick a date and time.'; return; }
     flash('Saving…', true);
     try{
-      const res = await apiPost({ action:'editEvent', id: editingEventId, timestamp: localInputToTs(val), password: adminPassword });
+      const res = await apiPost({ action:'editEvent', id: editingEventId, timestamp: localInputToTs(val), passwordHash: adminPasswordHash });
       if(res && res.error){ editEntryError.textContent = res.error; flash(''); return; }
       editEntryOverlay.classList.remove('show');
       editingEventId = null;
@@ -660,7 +682,7 @@
     if(!confirm('Delete this entry? This cannot be undone.')) return;
     flash('Deleting…', true);
     try{
-      const res = await apiPost({ action:'deleteEvent', id: editingEventId, password: adminPassword });
+      const res = await apiPost({ action:'deleteEvent', id: editingEventId, passwordHash: adminPasswordHash });
       if(res && res.error){ editEntryError.textContent = res.error; flash(''); return; }
       editEntryOverlay.classList.remove('show');
       editingEventId = null;
@@ -681,7 +703,7 @@
     if(!val){ flash('Pick a date and time.'); return; }
     flash('Adding…', true);
     try{
-      const res = await apiPost({ action:'addManualEvent', employeeId, type, timestamp: localInputToTs(val), password: adminPassword });
+      const res = await apiPost({ action:'addManualEvent', employeeId, type, timestamp: localInputToTs(val), passwordHash: adminPasswordHash });
       if(res && res.error){ flash(res.error); return; }
       document.getElementById('manualDatetime').value = '';
       await load(true);
@@ -692,7 +714,7 @@
     if(!confirm('Remove this employee? Their time log will be kept.')) return;
     flash('Removing…', true);
     try{
-      const res = await apiPost({ action:'removeEmployee', id, password: adminPassword });
+      const res = await apiPost({ action:'removeEmployee', id, passwordHash: adminPasswordHash });
       if(res && res.error){ flash(res.error); return; }
       await load(true);
       flash('');
@@ -756,7 +778,7 @@
   async function setEmployeeActive(id, active){
     flash(active ? 'Reactivating…' : 'Deactivating…', true);
     try{
-      const res = await apiPost({ action:'setEmployeeActive', id, active, password: adminPassword });
+      const res = await apiPost({ action:'setEmployeeActive', id, active, passwordHash: adminPasswordHash });
       if(res && res.error){ flash(res.error); return; }
       const emp = data.employees.find(e=>e.id===id);
       if(emp) emp.active = active;
@@ -1067,10 +1089,32 @@
     if(!newPassword){ errorEl.textContent = 'Enter a new password.'; return; }
     flash('Updating…', true);
     try{
-      const res = await apiPost({ action:'changeEmployeePassword', id: employeeId, newPassword, password: adminPassword });
+      const res = await apiPost({ action:'changeEmployeePassword', id: employeeId, newPassword, passwordHash: adminPasswordHash });
       if(res && res.error){ errorEl.textContent = res.error; flash(''); return; }
       document.getElementById('passwordChangeNew').value = '';
       flash('Password updated.');
+    }catch(e){
+      errorEl.textContent = 'Network error — try again.';
+      flash('');
+    }
+  });
+
+  document.getElementById('adminPwChangeBtn').addEventListener('click', async ()=>{
+    const next = document.getElementById('adminPwChangeNew').value;
+    const confirmVal = document.getElementById('adminPwChangeConfirm').value;
+    const errorEl = document.getElementById('adminPwChangeError');
+    errorEl.textContent = '';
+    if(!next){ errorEl.textContent = 'Enter a new password.'; return; }
+    if(next !== confirmVal){ errorEl.textContent = 'New passwords don\'t match.'; return; }
+    flash('Updating…', true);
+    try{
+      const newHash = await sha256Hex(next);
+      const res = await apiPost({ action:'changeAdminPassword', currentHash: adminPasswordHash, newHash });
+      if(res && res.error){ errorEl.textContent = res.error; flash(''); return; }
+      adminPasswordHash = newHash; // stay unlocked for the rest of this session
+      document.getElementById('adminPwChangeNew').value = '';
+      document.getElementById('adminPwChangeConfirm').value = '';
+      flash('Admin password updated.');
     }catch(e){
       errorEl.textContent = 'Network error — try again.';
       flash('');
