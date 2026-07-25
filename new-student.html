@@ -322,12 +322,16 @@
         <div class="r-head">
           <div>
             <div class="biz">Kumon Math and Reading</div>
+            ${includeFooter ? `
             <div class="addr">
               ${centerInfo.name}<br>
               ${centerInfo.address}<br>
               ${centerInfo.cityLine}<br>
               ${centerInfo.phone}
             </div>
+            ` : `
+            <div class="addr">${centerInfo.name}</div>
+            `}
           </div>
           <div class="date">Date: ${dateStr}</div>
         </div>
