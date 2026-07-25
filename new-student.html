@@ -94,6 +94,22 @@
   .r-instructor{border:1px solid #333;padding:10px;margin-top:10px;font-size:14px;display:flex;}
   .r-instructor .instructor-col{flex:1;text-align:center;}
 
+  .receipt-copy.compact{font-size:13px;padding-bottom:14px;margin-bottom:14px;}
+  .receipt-copy.compact .r-head{margin-bottom:6px;}
+  .receipt-copy.compact .r-head .biz{font-size:19px;}
+  .receipt-copy.compact .r-head .addr{font-size:13px;}
+  .receipt-copy.compact .r-head .date{font-size:13px;}
+  .receipt-copy.compact table.r-table{margin:8px 0;font-size:12px;}
+  .receipt-copy.compact table.r-table th{font-size:10px;padding:4px 8px 4px 0;}
+  .receipt-copy.compact table.r-table td{padding:4px 8px 4px 0;}
+  .receipt-copy.compact .r-summary-wrap{gap:14px;margin-top:8px;}
+  .receipt-copy.compact .r-summary{padding:10px;}
+  .receipt-copy.compact .r-summary div{font-size:12px;padding:2px 0;}
+  .receipt-copy.compact .r-summary .total{font-size:13px;padding:5px;}
+  .receipt-copy.compact .r-payment{width:170px;padding:10px;font-size:12px;}
+  .receipt-copy.compact .r-payment .title{font-size:13px;margin-bottom:6px;}
+  .receipt-copy.compact .r-payment label{font-size:12px;margin-bottom:6px;}
+
   @media print{
     @page{ size: letter; margin: 0.4in; }
     body{background:white;}
@@ -135,7 +151,8 @@
       <div class="rate-row"><label>Math (monthly)</label><input type="number" id="rateMath" value="160"></div>
       <div class="rate-row"><label>Reading (monthly)</label><input type="number" id="rateReading" value="170"></div>
       <div class="rate-row"><label>Both (monthly)</label><input type="number" id="rateBoth" value="320"></div>
-      <div class="rate-row"><label>Registration + Materials</label><input type="number" id="rateRegMat" value="160"></div>
+      <div class="rate-row"><label>Registration + Materials (1 subject)</label><input type="number" id="rateRegMatOne" value="130"></div>
+      <div class="rate-row"><label>Registration + Materials (2 subjects)</label><input type="number" id="rateRegMatTwo" value="160"></div>
       <div class="rate-row"><label>Last Month Tuition Credit</label><input type="number" id="rateLastMonth" value="50"></div>
       <div class="rate-row"><label>Sibling discount (monthly)</label><input type="number" id="rateSibling" value="-5"></div>
     </div>
@@ -252,6 +269,7 @@
 
   function computeStudent(s, idx, rates, dateObj){
     const monthlyFull = (s.math && s.reading) ? rates.both : (s.math ? rates.math : (s.reading ? rates.reading : 0));
+    const regMat = (s.math && s.reading) ? rates.regMatTwo : rates.regMatOne;
 
     const siblingAdj = idx > 0 ? rates.sibling : 0;
     const monthlyGoingForward = monthlyFull + siblingAdj;
@@ -264,7 +282,7 @@
     const other2 = Number(s.other2Amt) || 0;
     const otherTotal = other1 + other2;
 
-    const totalDue = prorated + rates.regMat + rates.lastMonth + otherTotal;
+    const totalDue = prorated + regMat + rates.lastMonth + otherTotal;
 
     let subjectsLabel = [];
     if(s.math) subjectsLabel.push('Math');
@@ -278,7 +296,7 @@
       name: s.name || '(unnamed)',
       subjects: subjectsLabel.join(', '),
       tuition: prorated,
-      regMat: rates.regMat,
+      regMat: regMat,
       lastMonth: rates.lastMonth,
       otherTotal,
       otherLabel: otherLabel.join(', '),
@@ -318,7 +336,7 @@
     ` : '';
 
     return `
-      <div class="receipt-copy">
+      <div class="receipt-copy ${includeFooter ? '' : 'compact'}">
         <div class="r-head">
           <div>
             <div class="biz">Kumon Math and Reading</div>
@@ -368,7 +386,8 @@
       math: Number(document.getElementById('rateMath').value) || 0,
       reading: Number(document.getElementById('rateReading').value) || 0,
       both: Number(document.getElementById('rateBoth').value) || 0,
-      regMat: Number(document.getElementById('rateRegMat').value) || 0,
+      regMatOne: Number(document.getElementById('rateRegMatOne').value) || 0,
+      regMatTwo: Number(document.getElementById('rateRegMatTwo').value) || 0,
       lastMonth: Number(document.getElementById('rateLastMonth').value) || 0,
       sibling: Number(document.getElementById('rateSibling').value) || 0
     };
@@ -399,7 +418,7 @@
     document.getElementById('pricingToggle').textContent = nowOpen ? '– Pricing (editable)' : '+ Pricing (editable)';
   });
 
-  ['rateMath','rateReading','rateBoth','rateRegMat','rateLastMonth','rateSibling','receiptDate'].forEach(id=>{
+  ['rateMath','rateReading','rateBoth','rateRegMatOne','rateRegMatTwo','rateLastMonth','rateSibling','receiptDate'].forEach(id=>{
     document.getElementById(id).addEventListener('input', renderReceipt);
   });
   document.querySelectorAll('input[name=center]').forEach(el=>el.addEventListener('change', renderReceipt));
