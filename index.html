@@ -491,7 +491,30 @@
   .qr-print-item{text-align:left;font-family:sans-serif;break-inside:avoid;padding:10px;}
   .qr-print-item .qr-name{margin-top:6px;font-weight:600;font-size:13px;}
   .qr-print-item .qr-class{font-size:11px;color:#666;}
+
+  .badge-print-grid{display:grid;grid-template-columns:repeat(2,3in);gap:0.15in;justify-content:start;}
+  .badge-print-item{
+    width:3in;height:1.24in;border:1px dashed #999;box-sizing:border-box;
+    display:flex;align-items:stretch;padding:0.08in 0.12in;gap:0.12in;overflow:hidden;
+    break-inside:avoid;
+  }
+  .badge-print-item .badge-qr{
+    flex:0 0 auto;width:0.95in;height:0.95in;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .badge-print-item .badge-qr img, .badge-print-item .badge-qr canvas, .badge-print-item .badge-qr table{
+    width:100% !important;height:100% !important;
+  }
+  .badge-print-item .badge-info{
+    flex:1;min-width:0;height:100%;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+  }
+  .badge-print-item .badge-name{
+    font-family:sans-serif;font-weight:700;font-size:20px;line-height:1.15;color:#152420;
+    white-space:normal;overflow-wrap:break-word;word-break:break-word;max-width:100%;
+  }
   @media print{
+    @page{ size: letter; margin: 0.3in; }
     #appRoot, #gateOverlay, #flagAlertOverlay, #scanOverlay, #backToTop, #passwordChangeOverlay{
       display:none !important;
     }
@@ -543,6 +566,7 @@
         <div class="count-item out"><span class="n" id="countOut">0</span><span class="l">Checked Out</span></div>
         <div class="count-item"><span class="n" id="countTotal">0</span><span class="l">Roster</span></div>
       </div>
+      <a href="new-student.html" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--teal-dark);text-decoration:none;border:1px solid rgba(0,0,0,.15);padding:6px 12px;border-radius:20px;white-space:nowrap;">New Student / Receipt &rarr;</a>
       <a href="employee.html" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--teal-dark);text-decoration:none;border:1px solid rgba(0,0,0,.15);padding:6px 12px;border-radius:20px;white-space:nowrap;">Employee Time Clock &rarr;</a>
     </div>
   </header>
@@ -587,6 +611,7 @@
           <button class="btn-ghost" id="bulkAddBtn">Add all</button>
         </div>
         <button class="btn-ghost" id="printQRBtn" style="width:100%;margin-top:8px;">&#128196; Print QR Codes (current filter)</button>
+        <button class="btn-ghost" id="printQRNametagsBtn" style="width:100%;margin-top:8px;">&#127991;&#65039; Print QR Nametags (current filter)</button>
       </div>
     </div>
 
@@ -682,7 +707,7 @@
   // ====================================================================
   // Paste the Web App URL from your Apps Script deployment below
   // ====================================================================
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxrWo3nht962zuXiWfmyK53yCcUJSLm3Mv5tK5V28SiiO8d7MTxyCg3qucMm6UR7w6q/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwV7JS3vBUPD7zGJlc4MtUN_WAau4lDkacQkj3403DNr60nDKyyYeMQCXJfxgNhzlgP/exec';
 
   async function apiGet(){
     const res = await fetch(API_URL);
@@ -1237,6 +1262,50 @@
       }
       grid.appendChild(item);
       new QRCode(qrDiv, { text: QR_PREFIX + s.id, width: 120, height: 120 });
+    });
+
+    setTimeout(()=>window.print(), 250);
+  });
+
+  function fitBadgeName(nameEl){
+    const maxHeight = nameEl.parentElement.clientHeight;
+    let fontSize = 20;
+    nameEl.style.fontSize = fontSize + 'px';
+    while(fontSize > 9 && nameEl.scrollHeight > maxHeight){
+      fontSize -= 1;
+      nameEl.style.fontSize = fontSize + 'px';
+    }
+  }
+
+  document.getElementById('printQRNametagsBtn').addEventListener('click', ()=>{
+    const classFilter = document.getElementById('classFilter').value;
+    const students = data.students
+      .filter(s=>!classFilter || s.class===classFilter)
+      .sort((a,b)=>a.name.localeCompare(b.name));
+
+    if(students.length===0){ flash('No students to print for this filter.'); return; }
+
+    const container = document.getElementById('qrPrintArea');
+    container.innerHTML = '';
+    const grid = document.createElement('div');
+    grid.className = 'badge-print-grid';
+    container.appendChild(grid);
+
+    students.forEach((s, i)=>{
+      const item = document.createElement('div');
+      item.className = 'badge-print-item';
+      const qrDiv = document.createElement('div');
+      qrDiv.className = 'badge-qr';
+      qrDiv.id = 'nametag-qr-' + i;
+      item.appendChild(qrDiv);
+      const info = document.createElement('div');
+      info.className = 'badge-info';
+      info.innerHTML = '<div class="badge-name"></div>';
+      item.appendChild(info);
+      info.querySelector('.badge-name').textContent = s.name;
+      grid.appendChild(item);
+      new QRCode(document.getElementById('nametag-qr-' + i), { text: QR_PREFIX + s.id, width: 130, height: 130 });
+      fitBadgeName(info.querySelector('.badge-name'));
     });
 
     setTimeout(()=>window.print(), 250);

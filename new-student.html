@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Receipt Generator — Try It Out</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#DCEEFA;
+    --panel:#F4EFE3;
+    --panel-2:#FFFDF7;
+    --teal:#1F6F63;
+    --teal-dark:#154F46;
+    --text:#1C2521;
+    --muted:#6B6255;
+    --line:#DAD2BC;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',sans-serif;background:var(--ink);color:var(--text);}
+  .wrap{display:grid;grid-template-columns:380px 1fr;gap:20px;padding:20px;align-items:start;}
+  @media (max-width:900px){.wrap{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel);border-radius:14px;padding:18px;border:1px solid var(--line);}
+  .panel h2{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--teal-dark);margin:0 0 12px 0;}
+  .panel h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:16px 0 8px 0;}
+
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px;}
+  input[type=text], input[type=number], input[type=date], select{
+    width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:6px;
+    font-family:'Inter',sans-serif;font-size:13px;background:var(--panel-2);margin-bottom:8px;
+  }
+  .rate-row{display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center;}
+  .rate-row label{margin:0;}
+  .rate-row input{margin-bottom:0;}
+
+  .center-choice{display:flex;gap:10px;margin-bottom:8px;}
+  .center-choice label{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text);margin:0;}
+
+  .student-card{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:10px;margin-bottom:10px;
+  }
+  .student-card .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .student-card .top-row strong{font-size:12px;color:var(--teal-dark);}
+  .remove-student{background:none;border:none;color:#B5502C;font-size:16px;cursor:pointer;line-height:1;}
+  .checks{display:flex;gap:14px;margin-bottom:6px;}
+  .checks label{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text);margin:0;}
+  .other-row{display:grid;grid-template-columns:1fr 70px;gap:6px;margin-bottom:6px;}
+  .other-row input{margin-bottom:0;}
+
+  button{font-family:'Inter',sans-serif;font-weight:600;border:none;border-radius:8px;padding:9px 13px;cursor:pointer;font-size:13px;}
+  .btn-teal{background:var(--teal);color:white;width:100%;}
+  .btn-teal:hover{background:var(--teal-dark);}
+  .btn-ghost{background:transparent;color:var(--teal-dark);border:1px solid var(--line);width:100%;margin-top:4px;}
+  .collapsible{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+  .collapsible.open{display:block;}
+  .draft-status{font-size:11px;color:var(--teal-dark);min-height:14px;margin-top:4px;font-family:'IBM Plex Mono',monospace;}
+  .empty-note{font-size:12px;color:var(--muted);padding:6px 0;}
+  .draft-item{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;margin-bottom:8px;
+  }
+  .draft-item .d-name{font-size:13px;font-weight:600;color:var(--text);}
+  .draft-item .d-date{font-size:11px;color:var(--muted);margin-bottom:6px;}
+  .draft-item .d-actions{display:flex;gap:6px;}
+  .draft-item .d-actions button{flex:1;padding:6px 8px;font-size:12px;}
+  .btn-danger{background:transparent;color:#B5502C;border:1px solid #E8CBB8;}
+  .btn-danger:hover{background:#F5E4DA;}
+
+  /* --- Receipt preview --- */
+  .receipt-outer{background:white;border-radius:10px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.15);}
+  .receipt-copy{
+    font-family:'Inter',sans-serif;font-size:12px;color:#111;
+    border-bottom:1px dashed #999;padding-bottom:14px;margin-bottom:14px;
+  }
+  .receipt-copy:last-child{border-bottom:none;margin-bottom:0;}
+  .r-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+  .r-head .biz{font-weight:700;font-size:15px;}
+  .r-head .addr{font-size:11px;line-height:1.5;}
+  .r-head .date{font-size:12px;white-space:nowrap;}
+  table.r-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px;}
+  table.r-table th{text-align:left;border-bottom:1px solid #333;padding:3px 6px 3px 0;font-size:10px;text-transform:uppercase;}
+  table.r-table td{padding:3px 6px 3px 0;vertical-align:top;}
+  .r-summary-wrap{display:flex;gap:14px;margin-top:8px;}
+  .r-summary{flex:1;border:1px solid #333;padding:8px;}
+  .r-summary div{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;}
+  .r-summary .total{font-weight:700;background:#ddd;padding:4px;margin-top:4px;}
+  .r-payment{width:170px;border:1px solid #333;padding:8px;font-size:11px;}
+  .r-payment .title{font-weight:700;margin-bottom:6px;}
+  .r-payment label{display:flex;align-items:center;gap:5px;font-size:11px;color:#111;margin-bottom:6px;}
+  .r-footer{font-size:9px;color:#333;margin-top:8px;line-height:1.4;}
+  .r-instructor{border:1px solid #333;padding:5px;margin-top:6px;font-size:10px;display:flex;}
+  .r-instructor .instructor-col{flex:1;text-align:center;}
+
+  @media print{
+    @page{ size: letter; margin: 0.35in; }
+    body{background:white;}
+    .panel, .no-print{display:none !important;}
+    .wrap{display:block;padding:0;}
+    .receipt-outer{box-shadow:none;padding:0;}
+    .receipt-copy{padding-bottom:8px;margin-bottom:8px;}
+    .r-head{margin-bottom:4px;}
+    .r-head .biz{font-size:13px;}
+    .r-head .addr{font-size:9px;line-height:1.3;}
+    .r-head .date{font-size:10px;}
+    table.r-table{margin:5px 0;font-size:9px;}
+    table.r-table th{font-size:8px;padding:2px 5px 2px 0;}
+    table.r-table td{padding:2px 5px 2px 0;}
+    .r-summary-wrap{gap:10px;margin-top:5px;}
+    .r-summary{padding:5px;}
+    .r-summary div{font-size:9px;padding:1px 0;}
+    .r-payment{width:140px;padding:5px;font-size:9px;}
+    .r-payment .title{margin-bottom:4px;}
+    .r-payment label{font-size:9px;margin-bottom:4px;}
+    .r-footer{font-size:7px;margin-top:5px;line-height:1.25;}
+    .r-instructor{font-size:8px;padding:3px;margin-top:4px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="panel no-print">
+    <h2>Receipt Generator — Test</h2>
+
+    <h3>Receipt Details</h3>
+    <label>Center</label>
+    <div class="center-choice">
+      <label><input type="radio" name="center" value="SU" checked> Sunnyvale</label>
+      <label><input type="radio" name="center" value="CU"> Cupertino</label>
+    </div>
+    <label>Date</label>
+    <input type="date" id="receiptDate">
+
+    <h3>Students</h3>
+    <div id="studentList"></div>
+    <button class="btn-ghost" id="addStudentBtn">+ Add Student</button>
+
+    <button class="btn-teal" id="printBtn" style="margin-top:16px;">Print Receipt</button>
+    <button class="btn-ghost" id="saveDraftBtn">Save as Draft</button>
+    <div class="draft-status" id="draftStatus"></div>
+
+    <h3>Queued Drafts</h3>
+    <div id="draftsList"></div>
+    <div class="empty-note" id="draftsEmpty">No drafts saved yet.</div>
+
+    <button class="btn-ghost" id="pricingToggle" style="margin-top:18px;">+ Pricing (editable)</button>
+    <div id="pricingArea" class="collapsible">
+      <div class="rate-row"><label>Math (monthly)</label><input type="number" id="rateMath" value="160"></div>
+      <div class="rate-row"><label>Reading (monthly)</label><input type="number" id="rateReading" value="170"></div>
+      <div class="rate-row"><label>Both (monthly)</label><input type="number" id="rateBoth" value="320"></div>
+      <div class="rate-row"><label>Registration + Materials</label><input type="number" id="rateRegMat" value="160"></div>
+      <div class="rate-row"><label>Last Month Tuition Credit</label><input type="number" id="rateLastMonth" value="50"></div>
+      <div class="rate-row"><label>Sibling discount (monthly)</label><input type="number" id="rateSibling" value="-5"></div>
+    </div>
+  </div>
+
+  <div class="receipt-outer">
+    <div id="receiptRender"></div>
+  </div>
+</div>
+
+<script>
+  const CENTERS = {
+    SU: { name:'Sunnyvale Central', address:'433 E. El Camino Real', cityLine:'Sunnyvale, CA 94087', phone:'(408) 732-9898' },
+    CU: { name:'Cupertino', address:'1550 S. De Anza Blvd.', cityLine:'San Jose, CA 95129', phone:'(408) 732-9898' }
+  };
+
+  // ====================================================================
+  // Connected to the same Sign-In Desk Sheet/backend as your main app,
+  // so drafts sync across every computer.
+  // ====================================================================
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwV7JS3vBUPD7zGJlc4MtUN_WAau4lDkacQkj3403DNr60nDKyyYeMQCXJfxgNhzlgP/exec';
+
+  async function apiGet(){
+    const res = await fetch(API_URL);
+    if(!res.ok) throw new Error('Request failed');
+    return res.json();
+  }
+  async function apiPost(payload){
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error('Request failed');
+    return res.json();
+  }
+
+  let drafts = [];
+
+  let students = [];
+  let studentCounter = 0;
+
+  function addStudent(){
+    studentCounter++;
+    students.push({
+      id: studentCounter,
+      name: '',
+      math: false,
+      reading: false,
+      other1Label: '', other1Amt: '',
+      other2Label: '', other2Amt: ''
+    });
+    renderStudentInputs();
+    renderReceipt();
+  }
+
+  function removeStudent(id){
+    students = students.filter(s=>s.id!==id);
+    renderStudentInputs();
+    renderReceipt();
+  }
+
+  function renderStudentInputs(){
+    const wrap = document.getElementById('studentList');
+    wrap.innerHTML = '';
+    students.forEach((s, idx)=>{
+      const card = document.createElement('div');
+      card.className = 'student-card';
+      card.innerHTML = `
+        <div class="top-row">
+          <strong>Student ${idx+1}${idx>0 ? ' (sibling discount applies)' : ''}</strong>
+          <button class="remove-student" title="Remove">&times;</button>
+        </div>
+        <label>Name</label>
+        <input type="text" class="s-name" value="${s.name}" placeholder="Student name">
+        <div class="checks">
+          <label><input type="checkbox" class="s-math" ${s.math?'checked':''}> Math</label>
+          <label><input type="checkbox" class="s-reading" ${s.reading?'checked':''}> Reading</label>
+        </div>
+        <div class="other-row">
+          <input type="text" class="s-other1-label" value="${s.other1Label}" placeholder="Other (e.g. coupon)">
+          <input type="number" class="s-other1-amt" value="${s.other1Amt}" placeholder="$">
+        </div>
+        <div class="other-row">
+          <input type="text" class="s-other2-label" value="${s.other2Label}" placeholder="Other 2">
+          <input type="number" class="s-other2-amt" value="${s.other2Amt}" placeholder="$">
+        </div>
+      `;
+      wrap.appendChild(card);
+
+      card.querySelector('.remove-student').addEventListener('click', ()=>removeStudent(s.id));
+      card.querySelector('.s-name').addEventListener('input', e=>{ s.name = e.target.value; renderReceipt(); });
+      card.querySelector('.s-math').addEventListener('change', e=>{ s.math = e.target.checked; renderReceipt(); });
+      card.querySelector('.s-reading').addEventListener('change', e=>{ s.reading = e.target.checked; renderReceipt(); });
+      card.querySelector('.s-other1-label').addEventListener('input', e=>{ s.other1Label = e.target.value; renderReceipt(); });
+      card.querySelector('.s-other1-amt').addEventListener('input', e=>{ s.other1Amt = e.target.value; renderReceipt(); });
+      card.querySelector('.s-other2-label').addEventListener('input', e=>{ s.other2Label = e.target.value; renderReceipt(); });
+      card.querySelector('.s-other2-amt').addEventListener('input', e=>{ s.other2Amt = e.target.value; renderReceipt(); });
+    });
+  }
+
+  function daysInMonth(year, month){ // month: 1-12
+    return new Date(year, month, 0).getDate();
+  }
+
+  function fmtMoney(n){
+    const sign = n < 0 ? '-' : '';
+    return sign + '$' + Math.abs(n).toFixed(2).replace(/\.00$/, '') ;
+  }
+  function fmtMoneyFixed(n){
+    const sign = n < 0 ? '-' : '';
+    return sign + '$' + Math.abs(n).toFixed(2);
+  }
+
+  function computeStudent(s, idx, rates, dateObj){
+    const monthlyFull = (s.math && s.reading) ? rates.both : (s.math ? rates.math : (s.reading ? rates.reading : 0));
+
+    const siblingAdj = idx > 0 ? rates.sibling : 0;
+    const monthlyGoingForward = monthlyFull + siblingAdj;
+
+    const y = dateObj.getFullYear(), m = dateObj.getMonth()+1, d = dateObj.getDate();
+    const dim = daysInMonth(y, m);
+    const prorated = monthlyFull * (dim - d + 1) / dim;
+
+    const other1 = Number(s.other1Amt) || 0;
+    const other2 = Number(s.other2Amt) || 0;
+    const otherTotal = other1 + other2;
+
+    const totalDue = prorated + rates.regMat + rates.lastMonth + otherTotal;
+
+    let subjectsLabel = [];
+    if(s.math) subjectsLabel.push('M');
+    if(s.reading) subjectsLabel.push('R');
+
+    let otherLabel = [];
+    if(s.other1Label && other1) otherLabel.push(`${s.other1Label} ${fmtMoney(other1)}`);
+    if(s.other2Label && other2) otherLabel.push(`${s.other2Label} ${fmtMoney(other2)}`);
+
+    return {
+      name: s.name || '(unnamed)',
+      subjects: subjectsLabel.join(', '),
+      tuition: prorated,
+      regMat: rates.regMat,
+      lastMonth: rates.lastMonth,
+      otherTotal,
+      otherLabel: otherLabel.join(', '),
+      totalDue,
+      monthlyGoingForward
+    };
+  }
+
+  function renderReceiptCopy(centerInfo, dateStr, rows, grandTotalDue, grandMonthly, includeFooter){
+    const rowsHtml = rows.map(r=>`
+      <tr>
+        <td>${r.name}</td>
+        <td>${r.subjects}</td>
+        <td>${fmtMoneyFixed(r.tuition)}</td>
+        <td>${fmtMoneyFixed(r.regMat)}</td>
+        <td>${fmtMoneyFixed(r.lastMonth)}</td>
+        <td>${r.otherLabel}</td>
+      </tr>
+    `).join('');
+
+    const footerHtml = includeFooter ? `
+        <div class="r-footer">
+          *The Materials Fee is to cover the Kumon bag, answer books, and any other borrowed materials. The materials fee only needs to be repaid if the student is absent for more than 12 consecutive months.<br>
+          *The Last Month Tuition Credit will be returned upon termination from this center given that at least 1 month (30 days) advance notice is given before the first of the month that your student is stopping/transferring from this center.<br>
+          *If a student is absent (with no work) for more than 1 month in a calendar year, they will be discontinued and all enrollment fees (Registration and Last Month Tuition Credit) must be repaid.
+        </div>
+        <div class="r-instructor">
+          <div class="instructor-col">
+            Mariann: 408-728-6486<br>
+            kumonsunnyvale@gmail.com
+          </div>
+          <div class="instructor-col">
+            Alice: 408-641-1233<br>
+            kumoncupertino@gmail.com
+          </div>
+        </div>
+    ` : '';
+
+    return `
+      <div class="receipt-copy">
+        <div class="r-head">
+          <div>
+            <div class="biz">Kumon Math and Reading</div>
+            <div class="addr">
+              ${centerInfo.name}<br>
+              ${centerInfo.address}<br>
+              ${centerInfo.cityLine}<br>
+              ${centerInfo.phone}
+            </div>
+          </div>
+          <div class="date">Date: ${dateStr}</div>
+        </div>
+
+        <table class="r-table">
+          <tr><th>Student Name</th><th>Subject(s)</th><th>Tuition</th><th>Reg + Mat</th><th>Last Month</th><th>Other</th></tr>
+          ${rowsHtml}
+        </table>
+
+        <div class="r-summary-wrap">
+          <div class="r-summary">
+            <div><span>Tuition:</span><span>${fmtMoneyFixed(rows.reduce((a,r)=>a+r.tuition,0))}</span></div>
+            <div><span>Registration + Materials:</span><span>${fmtMoneyFixed(rows.reduce((a,r)=>a+r.regMat,0))}</span></div>
+            <div><span>Last Month Tuition Credit:</span><span>${fmtMoneyFixed(rows.reduce((a,r)=>a+r.lastMonth,0))}</span></div>
+            <div style="font-size:9px;color:#555;">see "Attention Parents"</div>
+            <div><span>Other:</span><span>${fmtMoneyFixed(rows.reduce((a,r)=>a+r.otherTotal,0))}</span></div>
+            <div class="total"><span>Total Due:</span><span>${fmtMoneyFixed(grandTotalDue)}</span></div>
+            <div style="font-weight:700;padding-top:4px;"><span>Monthly Fee:</span><span>${fmtMoneyFixed(grandMonthly)}</span></div>
+          </div>
+          <div class="r-payment">
+            <div class="title">Payment</div>
+            <label><input type="checkbox"> cash</label>
+            <label><input type="checkbox"> check (______)</label>
+            <div>$ _______</div>
+          </div>
+        </div>
+        ${footerHtml}
+      </div>
+    `;
+  }
+
+  function renderReceipt(){
+    const rates = {
+      math: Number(document.getElementById('rateMath').value) || 0,
+      reading: Number(document.getElementById('rateReading').value) || 0,
+      both: Number(document.getElementById('rateBoth').value) || 0,
+      regMat: Number(document.getElementById('rateRegMat').value) || 0,
+      lastMonth: Number(document.getElementById('rateLastMonth').value) || 0,
+      sibling: Number(document.getElementById('rateSibling').value) || 0
+    };
+
+    const centerVal = document.querySelector('input[name=center]:checked').value;
+    const centerInfo = CENTERS[centerVal];
+
+    const dateInput = document.getElementById('receiptDate').value;
+    const dateObj = dateInput ? new Date(dateInput + 'T00:00:00') : new Date();
+    const dateStr = `${dateObj.getMonth()+1} / ${dateObj.getDate()} / ${dateObj.getFullYear()}`;
+
+    const rows = students.map((s, idx)=>computeStudent(s, idx, rates, dateObj));
+    const grandTotalDue = rows.reduce((a,r)=>a+r.totalDue, 0);
+    const grandMonthly = rows.reduce((a,r)=>a+r.monthlyGoingForward, 0);
+
+    const rowsForRender = rows.length ? rows : [{name:'',subjects:'',tuition:0,regMat:0,lastMonth:0,otherTotal:0,otherLabel:''}];
+    const topCopy = renderReceiptCopy(centerInfo, dateStr, rowsForRender, grandTotalDue, grandMonthly, true);
+    const bottomCopy = renderReceiptCopy(centerInfo, dateStr, rowsForRender, grandTotalDue, grandMonthly, false);
+
+    document.getElementById('receiptRender').innerHTML = topCopy + bottomCopy;
+  }
+
+  document.getElementById('addStudentBtn').addEventListener('click', addStudent);
+  document.getElementById('printBtn').addEventListener('click', ()=>window.print());
+  document.getElementById('pricingToggle').addEventListener('click', ()=>{
+    const area = document.getElementById('pricingArea');
+    const nowOpen = area.classList.toggle('open');
+    document.getElementById('pricingToggle').textContent = nowOpen ? '– Pricing (editable)' : '+ Pricing (editable)';
+  });
+
+  ['rateMath','rateReading','rateBoth','rateRegMat','rateLastMonth','rateSibling','receiptDate'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', renderReceipt);
+  });
+  document.querySelectorAll('input[name=center]').forEach(el=>el.addEventListener('change', renderReceipt));
+
+  // ---- drafts ----
+  let draftStatusTimer;
+  function flashDraftStatus(msg){
+    const el = document.getElementById('draftStatus');
+    el.textContent = msg;
+    clearTimeout(draftStatusTimer);
+    draftStatusTimer = setTimeout(()=>{ el.textContent=''; }, 3500);
+  }
+
+  function fmtDraftDate(ts){
+    return new Date(ts).toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
+  }
+
+  function renderDraftsList(){
+    const wrap = document.getElementById('draftsList');
+    const empty = document.getElementById('draftsEmpty');
+    wrap.innerHTML = '';
+    if(drafts.length === 0){
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    drafts.slice().sort((a,b)=>b.createdAt-a.createdAt).forEach(d=>{
+      const item = document.createElement('div');
+      item.className = 'draft-item';
+      item.innerHTML = `
+        <div class="d-name">${d.label}</div>
+        <div class="d-date">Saved ${fmtDraftDate(d.createdAt)}</div>
+        <div class="d-actions">
+          <button class="btn-ghost load-draft-btn">Load</button>
+          <button class="btn-danger delete-draft-btn">Delete</button>
+        </div>
+      `;
+      item.querySelector('.load-draft-btn').addEventListener('click', ()=>loadDraft(d));
+      item.querySelector('.delete-draft-btn').addEventListener('click', ()=>deleteDraft(d.id));
+      wrap.appendChild(item);
+    });
+  }
+
+  async function refreshDrafts(){
+    try{
+      const fresh = await apiGet();
+      if(fresh && Array.isArray(fresh.drafts)){
+        drafts = fresh.drafts;
+        renderDraftsList();
+      }
+    }catch(e){
+      // quiet fail — drafts just won't update this cycle
+    }
+  }
+
+  document.getElementById('saveDraftBtn').addEventListener('click', async ()=>{
+    const names = students.map(s=>s.name.trim()).filter(Boolean);
+    if(names.length === 0){
+      flashDraftStatus('Enter at least one student name first.');
+      return;
+    }
+    const centerVal = document.querySelector('input[name=center]:checked').value;
+    const dataJSON = JSON.stringify({
+      center: centerVal,
+      students: students.map(s=>({
+        name: s.name, math: s.math, reading: s.reading,
+        other1Label: s.other1Label, other1Amt: s.other1Amt,
+        other2Label: s.other2Label, other2Amt: s.other2Amt
+      }))
+    });
+    flashDraftStatus('Saving…');
+    try{
+      const res = await apiPost({ action:'saveDraft', label: names.join(', '), dataJSON });
+      if(res && res.error){ flashDraftStatus(res.error); return; }
+      flashDraftStatus('Draft saved.');
+      await refreshDrafts();
+    }catch(e){
+      flashDraftStatus('Could not save — check your connection.');
+    }
+  });
+
+  function loadDraft(draft){
+    let parsed;
+    try{ parsed = JSON.parse(draft.dataJSON); }catch(e){ flashDraftStatus('Could not read this draft.'); return; }
+
+    document.querySelector(`input[name=center][value="${parsed.center}"]`).checked = true;
+    document.getElementById('receiptDate').value = new Date().toISOString().slice(0,10);
+
+    students = (parsed.students || []).map(s=>{
+      studentCounter++;
+      return {
+        id: studentCounter,
+        name: s.name || '',
+        math: !!s.math,
+        reading: !!s.reading,
+        other1Label: s.other1Label || '', other1Amt: s.other1Amt || '',
+        other2Label: s.other2Label || '', other2Amt: s.other2Amt || ''
+      };
+    });
+    if(students.length === 0) addStudent();
+
+    renderStudentInputs();
+    renderReceipt();
+    flashDraftStatus(`Loaded "${draft.label}" — today's date applied. Delete the draft once you've printed/added them.`);
+  }
+
+  async function deleteDraft(id){
+    if(!confirm('Delete this draft?')) return;
+    try{
+      await apiPost({ action:'deleteDraft', id });
+      await refreshDrafts();
+    }catch(e){
+      flashDraftStatus('Could not delete — try again.');
+    }
+  }
+
+  setInterval(refreshDrafts, 15000);
+
+  // Start with today's date and one blank student so there's something to see immediately
+  document.getElementById('receiptDate').value = new Date().toISOString().slice(0,10);
+  addStudent();
+  refreshDrafts();
+</script>
+
+</body>
+</html>
