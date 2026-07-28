@@ -500,6 +500,38 @@
   const modalPassword = document.getElementById('modalPassword');
   const modalError = document.getElementById('modalError');
 
+  // When Protected Records is already unlocked, admins can clock anyone
+  // in/out with one click, using their own already-verified admin session
+  // instead of needing that employee's personal password each time.
+  function handleClockClick(employeeId, name){
+    if(editMode){
+      adminToggleClock(employeeId, name);
+    }else{
+      openClockModal(employeeId, name);
+    }
+  }
+
+  async function adminToggleClock(employeeId, name){
+    const current = statusOf(employeeId);
+    const nextType = current==='in' ? 'out' : 'in';
+    flash(`${nextType==='in' ? 'Clocking in' : 'Clocking out'} ${name}…`, true);
+    try{
+      const res = await apiPost({ action:'adminClockAction', employeeId, type: nextType, passwordHash: adminPasswordHash });
+      if(res && res.error){
+        flash(res.error);
+        if(res.alreadyInState) await load(true);
+        return;
+      }
+      const timestamp = (res && res.timestamp) ? res.timestamp : Date.now();
+      const eventId = (res && res.id) ? res.id : ('local-' + timestamp);
+      data.events.push({ id: eventId, employeeId, type: nextType, timestamp });
+      render();
+      flash(`${name} ${nextType==='in' ? 'clocked in' : 'clocked out'}.`);
+    }catch(e){
+      flash('Could not save — try again.');
+    }
+  }
+
   function openClockModal(employeeId, name){
     const current = statusOf(employeeId);
     const nextType = current==='in' ? 'out' : 'in';
@@ -759,13 +791,13 @@
       if(!isActive) li.style.opacity = '0.5';
       li.innerHTML = `
         <span class="name"></span>
-        ${!isActive ? `<span class="badge out" style="cursor:default;">Inactive</span>` : `<button class="badge ${st}" title="Click to ${st==='in'?'clock out':'clock in'}">${st==='in'?'In':'Out'}</button>`}
+        ${!isActive ? `<span class="badge out" style="cursor:default;">Inactive</span>` : `<button class="badge ${st}" title="${editMode ? 'Admin one-click ' : 'Click to '}${st==='in'?'clock out':'clock in'}">${st==='in'?'In':'Out'}</button>`}
         ${editMode ? `<button class="edit-entry-btn" data-action="toggle-active">${isActive ? 'Deactivate' : 'Reactivate'}</button>` : ''}
         ${editMode ? `<button class="remove-x" title="Remove employee">&times;</button>` : ''}
       `;
       li.querySelector('.name').textContent = emp.name;
       if(isActive){
-        li.querySelector('.badge').addEventListener('click', ()=>openClockModal(emp.id, emp.name));
+        li.querySelector('.badge').addEventListener('click', ()=>handleClockClick(emp.id, emp.name));
       }
       if(editMode){
         li.querySelector('[data-action="toggle-active"]').addEventListener('click', ()=>setEmployeeActive(emp.id, !isActive));
@@ -812,7 +844,7 @@
     inList.forEach((x,i)=>{ rows[i].textContent = x.emp.name; });
     el.querySelectorAll('.quick-out-btn').forEach(btn=>{
       const match = inList.find(x=>x.emp.id===btn.dataset.id);
-      btn.addEventListener('click', ()=>openClockModal(match.emp.id, match.emp.name));
+      btn.addEventListener('click', ()=>handleClockClick(match.emp.id, match.emp.name));
     });
   }
 
