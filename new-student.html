@@ -117,6 +117,18 @@
     .wrap{display:block;padding:0;}
     .receipt-outer{box-shadow:none;padding:0;}
   }
+
+  #pageRuler{
+    position:absolute;
+    top:-9999px;
+    left:-9999px;
+    width:7.7in;   /* 8.5in page minus 0.4in margins each side */
+    height:10.2in; /* 11in page minus 0.4in margins top/bottom */
+    visibility:hidden;
+  }
+  #receiptScaleWrap{
+    transform-origin: top left;
+  }
 </style>
 </head>
 <body>
@@ -143,6 +155,7 @@
     <div class="draft-status" id="draftStatus"></div>
 
     <h3>Queued Drafts</h3>
+    <button class="btn-ghost" id="checkNewStudentsBtn">&#128260; Check for New Students Now</button>
     <div id="draftsList"></div>
     <div class="empty-note" id="draftsEmpty">No drafts saved yet.</div>
 
@@ -159,9 +172,11 @@
   </div>
 
   <div class="receipt-outer">
-    <div id="receiptRender"></div>
+    <div id="receiptScaleWrap"><div id="receiptRender"></div></div>
   </div>
 </div>
+
+<div id="pageRuler"></div>
 
 <script>
   const CENTERS = {
@@ -202,6 +217,7 @@
       name: '',
       math: false,
       reading: false,
+      addSubject: false,
       other1Label: '', other1Amt: '',
       other2Label: '', other2Amt: ''
     });
@@ -232,6 +248,9 @@
           <label><input type="checkbox" class="s-math" ${s.math?'checked':''}> Math</label>
           <label><input type="checkbox" class="s-reading" ${s.reading?'checked':''}> Reading</label>
         </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--teal-dark);font-weight:600;margin-bottom:8px;">
+          <input type="checkbox" class="s-addsubject" ${s.addSubject?'checked':''}> Add a subject
+        </label>
         <div class="other-row">
           <input type="text" class="s-other1-label" value="${s.other1Label}" placeholder="Other (e.g. coupon)">
           <input type="number" class="s-other1-amt" value="${s.other1Amt}" placeholder="$">
@@ -247,6 +266,7 @@
       card.querySelector('.s-name').addEventListener('input', e=>{ s.name = e.target.value; renderReceipt(); });
       card.querySelector('.s-math').addEventListener('change', e=>{ s.math = e.target.checked; renderReceipt(); });
       card.querySelector('.s-reading').addEventListener('change', e=>{ s.reading = e.target.checked; renderReceipt(); });
+      card.querySelector('.s-addsubject').addEventListener('change', e=>{ s.addSubject = e.target.checked; renderReceipt(); });
       card.querySelector('.s-other1-label').addEventListener('input', e=>{ s.other1Label = e.target.value; renderReceipt(); });
       card.querySelector('.s-other1-amt').addEventListener('input', e=>{ s.other1Amt = e.target.value; renderReceipt(); });
       card.querySelector('.s-other2-label').addEventListener('input', e=>{ s.other2Label = e.target.value; renderReceipt(); });
@@ -269,10 +289,21 @@
 
   function computeStudent(s, idx, rates, dateObj){
     const monthlyFull = (s.math && s.reading) ? rates.both : (s.math ? rates.math : (s.reading ? rates.reading : 0));
-    const regMat = (s.math && s.reading) ? rates.regMatTwo : rates.regMatOne;
+    let regMat = (s.math && s.reading) ? rates.regMatTwo : rates.regMatOne;
+    let lastMonth = rates.lastMonth;
 
     const siblingAdj = idx > 0 ? rates.sibling : 0;
-    const monthlyGoingForward = monthlyFull + siblingAdj;
+    let monthlyGoingForward = monthlyFull + siblingAdj;
+
+    if(s.addSubject){
+      // Existing student adding a subject: $100 off the standard 1-subject
+      // registration fee, no Last Month Tuition Credit (deposit) charged
+      // again, and the ongoing monthly rate becomes the full combined
+      // "Both" rate regardless of which single subject is being added today.
+      regMat = rates.regMatOne - 100;
+      lastMonth = 0;
+      monthlyGoingForward = rates.both + siblingAdj;
+    }
 
     const y = dateObj.getFullYear(), m = dateObj.getMonth()+1, d = dateObj.getDate();
     const dim = daysInMonth(y, m);
@@ -282,7 +313,7 @@
     const other2 = Number(s.other2Amt) || 0;
     const otherTotal = other1 + other2;
 
-    const totalDue = prorated + regMat + rates.lastMonth + otherTotal;
+    const totalDue = prorated + regMat + lastMonth + otherTotal;
 
     let subjectsLabel = [];
     if(s.math) subjectsLabel.push('Math');
@@ -297,7 +328,7 @@
       subjects: subjectsLabel.join(', '),
       tuition: prorated,
       regMat: regMat,
-      lastMonth: rates.lastMonth,
+      lastMonth: lastMonth,
       otherTotal,
       otherLabel: otherLabel.join(', '),
       totalDue,
@@ -412,6 +443,38 @@
 
   document.getElementById('addStudentBtn').addEventListener('click', addStudent);
   document.getElementById('printBtn').addEventListener('click', ()=>window.print());
+
+  // Automatically shrink the receipt just enough to fit one printed page,
+  // no matter how it happens to render on this particular computer/browser.
+  // Only ever shrinks — never stretches content beyond its normal size.
+  function fitReceiptToPage(){
+    const wrap = document.getElementById('receiptScaleWrap');
+    const content = document.getElementById('receiptRender');
+    const ruler = document.getElementById('pageRuler');
+
+    // Reset first so we measure the true, unscaled height.
+    wrap.style.transform = 'none';
+    wrap.style.width = '100%';
+
+    const contentHeight = content.scrollHeight;
+    const pageHeight = ruler.clientHeight;
+
+    if(contentHeight > pageHeight && contentHeight > 0){
+      const scale = pageHeight / contentHeight;
+      wrap.style.transform = `scale(${scale})`;
+      wrap.style.width = (100 / scale) + '%';
+    }
+  }
+
+  function resetReceiptScale(){
+    const wrap = document.getElementById('receiptScaleWrap');
+    wrap.style.transform = 'none';
+    wrap.style.width = '100%';
+  }
+
+  window.addEventListener('beforeprint', fitReceiptToPage);
+  window.addEventListener('afterprint', resetReceiptScale);
+
   document.getElementById('pricingToggle').addEventListener('click', ()=>{
     const area = document.getElementById('pricingArea');
     const nowOpen = area.classList.toggle('open');
@@ -473,6 +536,22 @@
       // quiet fail — drafts just won't update this cycle
     }
   }
+
+  document.getElementById('checkNewStudentsBtn').addEventListener('click', async ()=>{
+    flashDraftStatus('Checking…');
+    try{
+      const res = await apiPost({ action:'checkNewStudents' });
+      if(res && res.error){
+        flashDraftStatus(res.error);
+        return;
+      }
+      const added = (res && res.added) || 0;
+      flashDraftStatus(added === 0 ? 'No new students found.' : `Added ${added} new draft${added===1?'':'s'}.`);
+      await refreshDrafts();
+    }catch(e){
+      flashDraftStatus('Could not check — try again.');
+    }
+  });
 
   document.getElementById('saveDraftBtn').addEventListener('click', async ()=>{
     const names = students.map(s=>s.name.trim()).filter(Boolean);
