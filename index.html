@@ -394,6 +394,31 @@
   .back-to-top:hover{background:var(--teal-dark);}
   .back-to-top.show{display:block;}
 
+  .check-toast{
+    position:fixed;
+    top:24px;
+    left:50%;
+    transform:translateX(-50%) translateY(-12px);
+    background:var(--in);
+    color:white;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:18px;
+    padding:14px 28px;
+    border-radius:12px;
+    box-shadow:0 6px 20px rgba(0,0,0,.25);
+    z-index:200;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease;
+    white-space:nowrap;
+  }
+  .check-toast.out{background:var(--out);}
+  .check-toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
   .gate-overlay{
     position:fixed;
     inset:0;
@@ -515,7 +540,7 @@
   }
   @media print{
     @page{ size: letter; margin: 0.3in; }
-    #appRoot, #gateOverlay, #flagAlertOverlay, #scanOverlay, #backToTop, #passwordChangeOverlay{
+    #appRoot, #gateOverlay, #flagAlertOverlay, #scanOverlay, #backToTop, #passwordChangeOverlay, #checkToast{
       display:none !important;
     }
     .qr-print-area{
@@ -655,6 +680,7 @@
   </footer>
 </div>
 <button class="back-to-top" id="backToTop">&uarr; Top</button>
+<div class="check-toast" id="checkToast"></div>
 
 <div class="gate-overlay" id="flagAlertOverlay" style="display:none;background:rgba(181,80,44,.55);">
   <div class="gate-card" style="max-width:380px;">
@@ -1066,6 +1092,19 @@
     render();
   }
 
+  let toastTimer;
+  function showCheckToast(type){
+    const el = document.getElementById('checkToast');
+    el.textContent = type === 'in' ? 'Checked In!' : 'Checked Out!';
+    el.className = 'check-toast ' + (type==='in' ? '' : 'out');
+    // Force reflow so the show class re-triggers the transition even if
+    // a toast is already fading from a rapid previous check-in/out.
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 1000);
+  }
+
   const toggleInFlight = new Set();
 
   async function toggleStatus(id){
@@ -1094,6 +1133,7 @@
       data.events.push({ id: eventId, studentId: id, type: next, timestamp, note });
       render();
       flash('');
+      showCheckToast(next);
       if(next === 'in'){
         const student = data.students.find(s=>s.id===id);
         if(student && student.flagged){
