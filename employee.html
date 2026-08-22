@@ -129,6 +129,31 @@
   .back-to-top:hover{background:var(--teal-dark);}
   .back-to-top.show{display:block;}
 
+  .check-toast{
+    position:fixed;
+    top:24px;
+    left:50%;
+    transform:translateX(-50%) translateY(-12px);
+    background:var(--in);
+    color:white;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:18px;
+    padding:14px 28px;
+    border-radius:12px;
+    box-shadow:0 6px 20px rgba(0,0,0,.25);
+    z-index:200;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease;
+    white-space:nowrap;
+  }
+  .check-toast.out{background:var(--out);}
+  .check-toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
   .ledger-head-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
   .ledger-head-row h2{margin:0;}
   .edit-toggle-btn{background:transparent;color:var(--teal-dark);border:1px solid var(--line);font-size:11px;padding:6px 10px;}
@@ -349,6 +374,7 @@
   </footer>
 </div>
 <button class="back-to-top" id="backToTop">&uarr; Top</button>
+<div class="check-toast" id="checkToast"></div>
 
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
@@ -500,6 +526,17 @@
   const modalPassword = document.getElementById('modalPassword');
   const modalError = document.getElementById('modalError');
 
+  let toastTimer;
+  function showCheckToast(type){
+    const el = document.getElementById('checkToast');
+    el.textContent = type === 'in' ? 'Checked In!' : 'Checked Out!';
+    el.className = 'check-toast ' + (type==='in' ? '' : 'out');
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 1000);
+  }
+
   // When Protected Records is already unlocked, admins can clock anyone
   // in/out with one click, using their own already-verified admin session
   // instead of needing that employee's personal password each time.
@@ -526,6 +563,7 @@
       const eventId = (res && res.id) ? res.id : ('local-' + timestamp);
       data.events.push({ id: eventId, employeeId, type: nextType, timestamp });
       render();
+      showCheckToast(nextType);
       flash(`${name} ${nextType==='in' ? 'clocked in' : 'clocked out'}.`);
     }catch(e){
       flash('Could not save — try again.');
@@ -572,9 +610,11 @@
       }
       const timestamp = (res && res.timestamp) ? res.timestamp : Date.now();
       const eventId = (res && res.id) ? res.id : ('local-' + timestamp);
-      data.events.push({ id: eventId, employeeId: pendingClock.employeeId, type: pendingClock.nextType, timestamp });
+      const clockedType = pendingClock.nextType;
+      data.events.push({ id: eventId, employeeId: pendingClock.employeeId, type: clockedType, timestamp });
       closeModal();
       render();
+      showCheckToast(clockedType);
       flash('');
     }catch(e){
       modalError.textContent = 'Network error — try again.';
