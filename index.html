@@ -540,7 +540,7 @@
   }
   @media print{
     @page{ size: letter; margin: 0.3in; }
-    #appRoot, #gateOverlay, #flagAlertOverlay, #scanOverlay, #backToTop, #passwordChangeOverlay, #checkToast{
+    #appRoot, #gateOverlay, #flagAlertOverlay, #scanOverlay, #backToTop, #passwordChangeOverlay, #checkToast, #emailTemplateOverlay{
       display:none !important;
     }
     .qr-print-area{
@@ -675,6 +675,8 @@
     <span>
       <button id="refreshBtn">Refresh</button>
       <button id="changeSitePasswordBtn">Change Site Password</button>
+      <button id="parentEmailToggleBtn">Parent Emails: …</button>
+      <button id="editEmailTemplateBtn">Edit Email Template</button>
       <button id="resetAll">Clear all data</button>
     </span>
   </footer>
@@ -719,6 +721,25 @@
     <div class="scan-actions" style="margin-top:14px;">
       <button class="btn-ghost" id="pwChangeCancel">Cancel</button>
       <button class="btn-teal" id="pwChangeSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="scan-overlay" id="emailTemplateOverlay">
+  <div class="gate-card" style="max-width:460px;text-align:left;">
+    <span class="kicker" style="display:block;text-align:center;">Sign-In Desk</span>
+    <h2 style="text-align:center;">Parent Checkout Email</h2>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 12px 0;">
+      Use <code>{name}</code> anywhere you want the student's name inserted, and <code>{time}</code> for the checkout time — both fill in automatically for every email sent.
+    </p>
+    <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">Subject</label>
+    <input type="text" id="emailTemplateSubject" style="margin-bottom:10px;">
+    <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">Body</label>
+    <textarea id="emailTemplateBody" rows="7" style="width:100%;font-family:'Inter',sans-serif;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);font-size:14px;resize:vertical;"></textarea>
+    <div class="gate-error" id="emailTemplateError"></div>
+    <div class="scan-actions" style="margin-top:14px;">
+      <button class="btn-ghost" id="emailTemplateCancel">Cancel</button>
+      <button class="btn-teal" id="emailTemplateSave">Save</button>
     </div>
   </div>
 </div>
@@ -1435,6 +1456,11 @@
       <div class="settings-field">
         <input type="text" id="studentFlagMessage" placeholder="Message to show (e.g. See instructor)" value="${escapeHtml(student.flagMessage || '')}">
       </div>
+      <div class="settings-field">
+        <label for="studentParentEmail">Parent email (optional — leave blank for no checkout email)</label>
+        <input type="text" id="studentParentEmail" placeholder="parent@example.com" value="${escapeHtml(student.parentEmail || '')}">
+        <div class="settings-current-value">${student.parentEmail ? 'Checkout emails: on for this student' : 'Checkout emails: off (no email on file)'}</div>
+      </div>
       <button class="btn-ghost" id="saveStudentSettingsBtn" style="width:100%;">Save Settings</button>
 
       <h2 style="margin-top:18px;">Recent Activity</h2>
@@ -1450,6 +1476,7 @@
       const alertVal = document.getElementById('studentAlertInput').value;
       const flagged = document.getElementById('studentFlagInput').checked;
       const flagMessage = document.getElementById('studentFlagMessage').value.trim();
+      const parentEmail = document.getElementById('studentParentEmail').value.trim();
       flash('Saving…', true);
       try{
         const res = await apiPost({
@@ -1457,7 +1484,8 @@
           id: student.id,
           alertMinutes: alertVal === '' ? '' : Number(alertVal),
           flagged: flagged,
-          flagMessage: flagMessage
+          flagMessage: flagMessage,
+          parentEmail: parentEmail
         });
         if(res && res.error){
           flash('Save failed: ' + res.error + ' — make sure the Apps Script was redeployed with "New version" after updating Code.gs.');
@@ -1472,6 +1500,7 @@
           s.alertMinutes = alertVal === '' ? null : Number(alertVal);
           s.flagged = flagged;
           s.flagMessage = flagMessage;
+          s.parentEmail = parentEmail;
         }
         render();
         flash('Settings saved.');
@@ -1604,6 +1633,60 @@
     return div.innerHTML;
   }
 
+  function renderParentEmailToggle(){
+    const btn = document.getElementById('parentEmailToggleBtn');
+    const on = data.settings.parentEmailEnabled !== false;
+    btn.textContent = 'Parent Emails: ' + (on ? 'ON' : 'OFF');
+  }
+
+  document.getElementById('parentEmailToggleBtn').addEventListener('click', async ()=>{
+    const currentlyOn = data.settings.parentEmailEnabled !== false;
+    const next = !currentlyOn;
+    flash(next ? 'Turning parent emails on…' : 'Turning parent emails off…', true);
+    try{
+      const res = await apiPost({ action:'setParentEmailEnabled', enabled: next });
+      if(res && res.error){ flash(res.error); return; }
+      data.settings.parentEmailEnabled = next;
+      renderParentEmailToggle();
+      flash(next ? 'Parent emails turned on.' : 'Parent emails turned off for everyone.');
+    }catch(e){
+      flash('Could not save — try again.');
+    }
+  });
+
+  // ---- parent email template editor ----
+  document.getElementById('editEmailTemplateBtn').addEventListener('click', ()=>{
+    document.getElementById('emailTemplateSubject').value = data.settings.parentEmailSubject || '';
+    document.getElementById('emailTemplateBody').value = data.settings.parentEmailBody || '';
+    document.getElementById('emailTemplateError').textContent = '';
+    document.getElementById('emailTemplateOverlay').classList.add('show');
+  });
+  document.getElementById('emailTemplateCancel').addEventListener('click', ()=>{
+    document.getElementById('emailTemplateOverlay').classList.remove('show');
+  });
+  document.getElementById('emailTemplateOverlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'emailTemplateOverlay') e.target.classList.remove('show');
+  });
+  document.getElementById('emailTemplateSave').addEventListener('click', async ()=>{
+    const subject = document.getElementById('emailTemplateSubject').value.trim();
+    const body = document.getElementById('emailTemplateBody').value;
+    const errorEl = document.getElementById('emailTemplateError');
+    if(!subject){ errorEl.textContent = 'Enter a subject line.'; return; }
+    errorEl.textContent = '';
+    flash('Saving…', true);
+    try{
+      const res = await apiPost({ action:'setParentEmailTemplate', subject, body });
+      if(res && res.error){ errorEl.textContent = res.error; flash(''); return; }
+      data.settings.parentEmailSubject = subject;
+      data.settings.parentEmailBody = body;
+      document.getElementById('emailTemplateOverlay').classList.remove('show');
+      flash('Email template saved.');
+    }catch(e){
+      errorEl.textContent = 'Network error — try again.';
+      flash('');
+    }
+  });
+
   function render(){
     populateClassUI();
     renderRoster();
@@ -1611,6 +1694,7 @@
     renderDetail();
     renderLedger();
     renderCounts();
+    renderParentEmailToggle();
   }
 
 })();
