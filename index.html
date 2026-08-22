@@ -1419,8 +1419,20 @@
   function renderDetail(){
     if(!selectedId || !data.students.find(s=>s.id===selectedId)){
       detailBody.innerHTML = '<div class="detail-empty">Select a student from the roster to check them in or out.</div>';
+      detailBody.dataset.studentId = '';
       return;
     }
+
+    // Don't wipe out in-progress typing: if the panel is already showing
+    // this same student and one of its own fields currently has focus,
+    // skip rebuilding — a background sync shouldn't erase something
+    // someone's mid-typing. Switching to a different student still
+    // updates normally, since the stored student id won't match.
+    const protectedFieldIds = ['noteInput','studentAlertInput','studentFlagInput','studentFlagMessage','studentParentEmail'];
+    if(detailBody.dataset.studentId === selectedId && document.activeElement && protectedFieldIds.includes(document.activeElement.id)){
+      return;
+    }
+
     const student = data.students.find(s=>s.id===selectedId);
     const st = statusOf(student.id);
     const nextLabel = st==='in' ? 'Check Out' : 'Check In';
@@ -1469,6 +1481,7 @@
       <button class="btn-ghost danger-btn" id="removeStudentBtn" style="width:100%;margin-top:18px;">Remove This Student From Roster</button>
     `;
     detailBody.querySelector('h3').textContent = student.name;
+    detailBody.dataset.studentId = selectedId;
     document.getElementById('toggleBtn').addEventListener('click', ()=>toggleStatus(student.id));
     document.getElementById('closeDetailBtn').addEventListener('click', deselectStudent);
     document.getElementById('removeStudentBtn').addEventListener('click', ()=>removeStudent(student.id));
